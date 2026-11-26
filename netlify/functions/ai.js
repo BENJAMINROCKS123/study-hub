@@ -1,6 +1,6 @@
 /**
  * StudyHub AI — uses Netlify AI Gateway when available (no user API keys needed).
- * Falls back to GROK_API_KEY / OPENAI_API_KEY if you set them, then offline expert.
+ * Falls back to GROK_API_KEY / OPENAI_API_KEY if set, then offline expert.
  */
 
 const SYSTEM_PROMPT = `You are StudyHub AI — an elite academic tutor and exam coach for secondary/high-school students (including German-speaking curricula: Deutsch, Vokabeln, Lektionstests, Geschichte, Mathematik, etc.).
@@ -42,8 +42,6 @@ exports.handler = async function (event) {
   const sources = Array.isArray(body.sources) ? body.sources : [];
   const userMessage = buildUserMessage(mode, prompt, sources);
 
-  // Prefer Netlify AI Gateway (injected OPENAI_* on credit-based plans),
-  // then explicit keys the user may have set.
   const gatewayReady = !!(process.env.OPENAI_BASE_URL && process.env.OPENAI_API_KEY);
   const grokKey = process.env.GROK_API_KEY;
   const openAiKey = process.env.OPENAI_API_KEY;
@@ -73,7 +71,7 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         reply: offlineExpert(mode, prompt, sources),
         mode,
-        offline        offline: true,
+        offline: true,
         note: 'No AI Gateway / API key — offline expert used'
       })
     };
