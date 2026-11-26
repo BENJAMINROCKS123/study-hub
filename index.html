@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StudyHub — AI Revision & Notion Planner</title>
+  <title>StudyHub</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -13,20 +13,7 @@
           colors: {
             void: '#050508',
             surface: '#0c0c12',
-            panel: '#12121a',
-            purple: {
-              400: '#c084fc',
-              500: '#a855f7',
-              600: '#9333ea',
-              700: '#7e22ce',
-              800: '#6b21a8',
-              900: '#581c87',
-            },
-            indigo: {
-              400: '#818cf8',
-              500: '#6366f1',
-              600: '#4f46e5',
-            }
+            panel: '#12121a'
           }
         }
       }
@@ -35,288 +22,312 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0c0c12; }
-    ::-webkit-scrollbar-thumb { background: #4c1d95; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #6b21a8; }
-    .glow-purple { box-shadow: 0 0 20px rgba(168, 85, 247, 0.15); }
-    .chat-bubble-user { background: linear-gradient(135deg, #6b21a8, #4f46e5); }
-    .chat-bubble-ai { background: #1a1a24; border: 1px solid #2e1065; }
-    .sidebar-link.active { background: linear-gradient(90deg, rgba(139,92,246,0.2), transparent); border-left: 3px solid #a855f7; }
-    .day-box { min-height: 90px; }
-    .day-box.has-tasks { background: linear-gradient(180deg, #12121a 0%, #1a1030 100%); }
-    textarea:focus, input:focus { outline: none; box-shadow: 0 0 0 2px rgba(168,85,247,0.4); }
+    body { font-family: Inter, system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #5b21b6; border-radius: 3px; }
+    .sidebar-link.active { background: linear-gradient(90deg, rgba(139,92,246,.22), transparent); border-left: 3px solid #a855f7; }
+    .glow { box-shadow: 0 0 24px rgba(168,85,247,.18); }
+    .chat-user { background: linear-gradient(135deg,#6b21a8,#4f46e5); }
+    .chat-ai { background: #16161f; border: 1px solid #3b0764; }
+    html.light body { background: #f4f4f8; color: #1e1b2e; }
+    html.light .bg-void { background: #f4f4f8 !important; }
+    html.light .bg-surface { background: #ffffff !important; }
+    html.light .bg-panel { background: #f0eef6 !important; }
+    html.light .text-white { color: #1e1b2e !important; }
+    html.light .text-gray-300, html.light .text-gray-400 { color: #4b5563 !important; }
+    html.light .border-purple-900\/40, html.light .border-purple-900\/30 { border-color: #ddd6fe !important; }
+    html.light .chat-ai { background: #f5f3ff; border-color: #c4b5fd; }
     .flashcard { perspective: 1000px; }
-    .flashcard-inner { transition: transform 0.5s; transform-style: preserve-3d; }
+    .flashcard-inner { transition: transform .45s; transform-style: preserve-3d; }
     .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
     .flashcard-front, .flashcard-back { backface-visibility: hidden; }
     .flashcard-back { transform: rotateY(180deg); }
+    .task-row:hover { background: rgba(139,92,246,.08); }
   </style>
 </head>
-<body class="bg-void text-gray-100 h-screen flex overflow-hidden">
+<body class="bg-void text-gray-100 h-screen overflow-hidden">
 
-  <!-- LEFT SIDEBAR - INDEX GUIDE -->
-  <aside id="sidebar" class="w-64 bg-surface border-r border-purple-900/40 flex flex-col shrink-0 transition-all">
-    <div class="p-5 border-b border-purple-900/40">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-lg">📚</div>
+  <div id="auth-screen" class="fixed inset-0 z-50 bg-void flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <div class="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 items-center justify-center text-2xl mb-3">📚</div>
+        <h1 class="text-2xl font-bold text-white">StudyHub</h1>
+        <p class="text-sm text-purple-300/80 mt-1">Secure study OS · Notion + AI</p>
+      </div>
+
+      <div id="auth-login" class="rounded-2xl bg-surface border border-purple-900/40 p-6 space-y-4 glow">
+        <h2 class="text-lg font-semibold text-white">Log in</h2>
+        <p class="text-xs text-gray-400">Main login for security. You can also continue with Google.</p>
         <div>
-          <h1 class="font-bold text-lg tracking-tight text-white">StudyHub</h1>
-          <p class="text-[10px] text-purple-400 uppercase tracking-wider">AI Study OS</p>
+          <label class="text-xs text-gray-400">Email</label>
+          <input id="login-email" type="email" value="benjaminyu747@gmail.com" class="mt-1 w-full bg-panel border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400">Password</label>
+          <input id="login-pass" type="password" placeholder="••••••••" class="mt-1 w-full bg-panel border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+        </div>
+        <button onclick="doLogin()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-2.5 rounded-xl">Log in</button>
+        <button onclick="doGoogleLogin()" class="w-full bg-panel border border-purple-700/50 hover:bg-purple-900/30 text-white font-medium py-2.5 rounded-xl flex items-center justify-center gap-2">
+          <i class="fa-brands fa-google text-red-400"></i> Continue with Google
+        </button>
+        <div class="flex justify-between text-xs text-purple-300">
+          <button onclick="showAuth('signup')" class="hover:underline">Sign up</button>
+          <button onclick="showAuth('forgot')" class="hover:underline">Forgot password</button>
+        </div>
+        <p id="auth-error" class="text-xs text-rose-400 hidden"></p>
+      </div>
+
+      <div id="auth-signup" class="hidden rounded-2xl bg-surface border border-purple-900/40 p-6 space-y-4">
+        <h2 class="text-lg font-semibold text-white">Create account</h2>
+        <input id="signup-name" type="text" placeholder="Name" class="w-full bg-panel border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+        <input id="signup-email" type="email" placeholder="Email" class="w-full bg-panel border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+        <input id="signup-pass" type="password" placeholder="Password (min 6)" class="w-full bg-panel border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+        <button onclick="doSignup()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-2.5 rounded-xl">Sign up</button>
+        <button onclick="showAuth('login')" class="text-xs text-purple-300 hover:underline">Back to log in</button>
+      </div>
+
+      <div id="auth-forgot" class="hidden rounded-2xl bg-surface border border-purple-900/40 p-6 space-y-4">
+        <h2 class="text-lg font-semibold text-white">Reset password</h2>
+        <p class="text-xs text-gray-400">Enter your email (demo shows confirmation on screen).</p>
+        <input id="forgot-email" type="email" placeholder="Email" class="w-full bg-panel border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+        <button onclick="doForgot()" class="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-xl">Send reset link</button>
+        <button onclick="showAuth('login')" class="text-xs text-purple-300 hover:underline">Back to log in</button>
+        <p id="forgot-msg" class="text-xs text-emerald-400 hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-shell" class="hidden h-screen flex">
+    <aside class="w-64 bg-surface border-r border-purple-900/40 flex flex-col shrink-0">
+      <div class="p-5 border-b border-purple-900/40">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center">📚</div>
+          <div>
+            <h1 class="font-bold text-white">StudyHub</h1>
+            <p class="text-[10px] text-purple-400 uppercase tracking-wider">AI Study OS</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
-      <p class="px-3 py-2 text-[10px] font-semibold text-purple-500 uppercase tracking-widest">Main</p>
-      <a href="#" onclick="showView('home')" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="home">
-        <i class="fa-solid fa-house w-5 text-center text-purple-400"></i> Home
-      </a>
-      <a href="#" onclick="showView('calendar')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="calendar">
-        <i class="fa-solid fa-calendar-days w-5 text-center text-purple-400"></i> Calendar
-      </a>
-      <a href="#" onclick="showView('flashcards')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="flashcards">
-        <i class="fa-solid fa-layer-group w-5 text-center text-purple-400"></i> Flashcards
-      </a>
-      <a href="#" onclick="showView('revision')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="revision">
-        <i class="fa-solid fa-file-lines w-5 text-center text-purple-400"></i> Revision Sheets
-      </a>
+      <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+        <p class="px-3 py-2 text-[10px] font-semibold text-purple-500 uppercase tracking-widest">Main</p>
+        <a href="#" data-view="home" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20" onclick="showView('home');return false"><i class="fa-solid fa-house w-5 text-center text-purple-400"></i> Home</a>
+        <a href="#" data-view="calendar" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20" onclick="showView('calendar');return false"><i class="fa-solid fa-calendar-days w-5 text-center text-purple-400"></i> Calendar</a>
+        <a href="#" data-view="tasks" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20" onclick="showView('tasks');return false"><i class="fa-solid fa-list-check w-5 text-center text-purple-400"></i> Tasks</a>
+        <a href="#" data-view="flashcards" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20" onclick="showView('flashcards');return false"><i class="fa-solid fa-layer-group w-5 text-center text-purple-400"></i> Flashcards</a>
+        <a href="#" data-view="revision" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20" onclick="showView('revision');return false"><i class="fa-solid fa-file-lines w-5 text-center text-purple-400"></i> Revision</a>
+        <p class="px-3 py-2 mt-3 text-[10px] font-semibold text-purple-500 uppercase tracking-widest">Tools</p>
+        <a href="#" data-view="plan" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20" onclick="showView('plan');return false"><i class="fa-solid fa-brain w-5 text-center text-purple-400"></i> Plan My Day</a>
+        <a href="#" data-view="settings" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20" onclick="showView('settings');return false"><i class="fa-solid fa-gear w-5 text-center text-purple-400"></i> Settings</a>
+      </nav>
 
-      <p class="px-3 py-2 mt-4 text-[10px] font-semibold text-purple-500 uppercase tracking-widest">Tools</p>
-      <a href="#" onclick="showView('plan')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="plan">
-        <i class="fa-solid fa-brain w-5 text-center text-purple-400"></i> Plan My Day
-      </a>
-      <a href="#" onclick="showView('settings')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="settings">
-        <i class="fa-solid fa-gear w-5 text-center text-purple-400"></i> Settings / Sync
-      </a>
-    </nav>
-
-    <div class="p-4 border-t border-purple-900/40">
-      <div class="flex items-center gap-2 text-xs">
-        <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-        <span id="sync-label" class="text-gray-400">Local mode</span>
+      <div class="p-3 border-t border-purple-900/40 space-y-2">
+        <div class="flex items-center gap-2">
+          <button onclick="showView('settings')" class="flex-1 flex items-center gap-2 p-2 rounded-xl hover:bg-purple-900/20 text-left">
+            <img id="user-avatar" src="https://avatars.githubusercontent.com/u/213555010?v=4" class="w-8 h-8 rounded-full border border-purple-600/50" alt="" />
+            <div class="min-w-0">
+              <div id="user-name" class="text-xs font-medium text-white truncate">Benjamin Yu</div>
+              <div id="user-email" class="text-[10px] text-gray-500 truncate">benjaminyu747@gmail.com</div>
+            </div>
+          </button>
+          <button id="theme-toggle" onclick="toggleTheme()" title="Light / Dark" class="p-2 rounded-xl bg-panel border border-purple-900/40 text-purple-300 hover:bg-purple-900/30">
+            <i class="fa-solid fa-moon" id="theme-icon"></i>
+          </button>
+        </div>
+        <button onclick="doLogout()" class="w-full text-xs py-2 rounded-lg border border-rose-900/40 text-rose-300 hover:bg-rose-950/40">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> Log out
+        </button>
+        <div class="flex items-center gap-2 text-[10px] text-gray-500 px-1">
+          <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span id="sync-label">Local mode</span>
+        </div>
       </div>
-      <button onclick="syncNotion()" class="mt-2 w-full text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 py-2 rounded-lg border border-purple-700/50 transition">
-        <i class="fa-solid fa-rotate mr-1"></i> Sync Notion
-      </button>
-    </div>
-  </aside>
+    </aside>
 
-  <!-- MAIN CONTENT -->
-  <main class="flex-1 flex flex-col overflow-hidden bg-void">
-    <header class="h-14 border-b border-purple-900/30 flex items-center justify-between px-6 bg-surface/80 backdrop-blur shrink-0">
-      <h2 id="view-title" class="font-semibold text-white">Home</h2>
-      <div class="flex items-center gap-3 text-xs text-gray-400">
-        <span id="today-label"></span>
-        <span class="px-2 py-1 rounded bg-purple-900/40 text-purple-300 border border-purple-700/40">Dark Mode</span>
-      </div>
-    </header>
+    <main class="flex-1 flex flex-col overflow-hidden">
+      <header class="h-14 border-b border-purple-900/30 flex items-center justify-between px-6 bg-surface/80 shrink-0">
+        <h2 id="view-title" class="font-semibold text-white">Home</h2>
+        <div class="flex items-center gap-3 text-xs text-gray-400">
+          <button onclick="syncNotion()" class="px-3 py-1.5 rounded-lg bg-purple-900/40 text-purple-200 border border-purple-700/40"><i class="fa-solid fa-rotate mr-1"></i>Sync Notion</button>
+          <span id="today-label"></span>
+        </div>
+      </header>
 
-    <div class="flex-1 overflow-y-auto">
-
-      <section id="view-home" class="p-6 max-w-4xl mx-auto space-y-6">
-        <div class="rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/30 to-purple-900/40 border border-purple-700/40 p-6 glow-purple">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 mb-2">
-                <i class="fa-solid fa-sparkles"></i> AI Day Planner
+      <div class="flex-1 overflow-y-auto">
+        <section id="view-home" class="p-6 max-w-4xl mx-auto space-y-6">
+          <div class="rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/30 to-purple-900/40 border border-purple-700/40 p-6 glow">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 mb-2">AI Day Planner</div>
+                <h3 class="text-xl font-bold text-white">Plan My Day</h3>
+                <p class="text-sm text-gray-400 mt-1 max-w-md">Uses Notion due dates. <strong class="text-purple-300">Never</strong> schedules tests unless due today. Üben/revise allowed any day.</p>
               </div>
-              <h3 class="text-xl font-bold text-white">Plan My Day</h3>
-              <p class="text-sm text-gray-400 mt-1 max-w-md">
-                Looks at your Notion assignments. Schedules homework &amp; “Üben/revise” tasks. 
-                <strong class="text-purple-300">Never moves fixed tests</strong> unless due today.
-              </p>
+              <button onclick="runPlanMyDay()" id="plan-btn" class="shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold px-6 py-3 rounded-xl"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Plan My Day</button>
             </div>
-            <button onclick="runPlanMyDay()" id="plan-btn" class="shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-purple-900/40 transition flex items-center gap-2">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> Plan My Day
-            </button>
-          </div>
-          <div id="plan-output" class="hidden mt-5 space-y-3"></div>
-        </div>
-
-        <div class="rounded-2xl bg-panel border border-purple-900/40 overflow-hidden flex flex-col" style="min-height: 420px;">
-          <div class="px-5 py-3 border-b border-purple-900/40 flex items-center justify-between bg-surface">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              <span class="font-medium text-sm text-white">AI Study Assistant</span>
-            </div>
-            <div class="flex gap-2 text-xs">
-              <button onclick="setAIMode('sheet')" class="ai-mode-btn px-2.5 py-1 rounded-lg bg-purple-900/50 text-purple-300 border border-purple-700/50" data-mode="sheet">Revision Sheet</button>
-              <button onclick="setAIMode('plan')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="plan">Revision Plan</button>
-              <button onclick="setAIMode('mock')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="mock">Mock Test</button>
-              <button onclick="setAIMode('practice')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="practice">Practice</button>
-            </div>
+            <div id="plan-output" class="hidden mt-5 space-y-3"></div>
           </div>
 
-          <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4">
-            <div class="chat-bubble-ai rounded-2xl rounded-tl-sm p-4 text-sm text-gray-300 max-w-[90%]">
-              <p class="mb-2">Hey! I can create <strong class="text-purple-300">revision sheets</strong>, <strong class="text-purple-300">revision plans</strong>, <strong class="text-purple-300">mock tests</strong> and <strong class="text-purple-300">practice tests</strong>.</p>
-              <p class="mb-2">Attach teacher PDFs or paste website links — I’ll use them as sources. Everything can be downloaded as PDF.</p>
-              <p class="text-xs text-gray-500">Tip: mention the subject + topics (e.g. “Make a revision sheet for German Vokabeln 4.3”)</p>
+          <div class="rounded-2xl bg-panel border border-purple-900/40 overflow-hidden flex flex-col min-h-[440px]">
+            <div class="px-5 py-3 border-b border-purple-900/40 flex flex-wrap items-center justify-between gap-2 bg-surface">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                <span class="font-medium text-sm text-white">StudyHub AI</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 text-xs">
+                <button onclick="setAIMode('sheet')" class="ai-mode-btn px-2.5 py-1 rounded-lg bg-purple-900/50 text-purple-300 border border-purple-700/50" data-mode="sheet">Revision Sheet</button>
+                <button onclick="setAIMode('plan')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="plan">Revision Plan</button>
+                <button onclick="setAIMode('mock')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="mock">Mock Test</button>
+                <button onclick="setAIMode('practice')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="practice">Practice</button>
+                <button onclick="setAIMode('flashcards')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="flashcards">Flashcards</button>
+              </div>
             </div>
-          </div>
-
-          <div id="attach-preview" class="px-4 hidden flex flex-wrap gap-2"></div>
-
-          <div class="p-4 border-t border-purple-900/40 bg-surface">
-            <div class="flex items-end gap-2">
-              <div class="flex gap-1">
-                <label class="cursor-pointer p-2.5 rounded-xl bg-panel hover:bg-purple-900/40 text-purple-400 border border-purple-900/40 transition" title="Attach files">
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4"></div>
+            <div id="attach-preview" class="px-4 hidden flex flex-wrap gap-2 pb-2"></div>
+            <div class="p-4 border-t border-purple-900/40 bg-surface">
+              <div class="flex items-end gap-2">
+                <label class="cursor-pointer p-2.5 rounded-xl bg-panel text-purple-400 border border-purple-900/40">
                   <i class="fa-solid fa-paperclip"></i>
                   <input type="file" id="file-attach" multiple accept=".pdf,.txt,.md,.doc,.docx,.png,.jpg" class="hidden" onchange="handleFiles(event)" />
                 </label>
-                <button onclick="promptLink()" class="p-2.5 rounded-xl bg-panel hover:bg-purple-900/40 text-purple-400 border border-purple-900/40 transition" title="Add link">
-                  <i class="fa-solid fa-link"></i>
-                </button>
+                <button onclick="promptLink()" class="p-2.5 rounded-xl bg-panel text-purple-400 border border-purple-900/40"><i class="fa-solid fa-link"></i></button>
+                <textarea id="chat-input" rows="2" placeholder="e.g. Revision sheet for German Vokabeln 4.3…" class="flex-1 bg-panel border border-purple-900/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 resize-none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+                <button onclick="sendChat()" id="send-btn" class="p-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
-              <textarea id="chat-input" rows="1" placeholder="Ask for a revision sheet, plan, mock test… (or describe topics)" class="flex-1 bg-panel border border-purple-900/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 resize-none max-h-32" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
-              <button onclick="sendChat()" class="p-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white transition">
-                <i class="fa-solid fa-paper-plane"></i>
-              </button>
             </div>
-            <p class="text-[10px] text-gray-500 mt-2">Sources &amp; attachments are used by the AI. Generated PDFs appear as download buttons in the chat.</p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="view-calendar" class="hidden p-6">
-        <div class="max-w-5xl mx-auto">
-          <div class="flex items-center justify-between mb-5">
+        <section id="view-tasks" class="hidden p-6 max-w-3xl mx-auto">
+          <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold text-white">Assignments & Tasks</h3>
+              <button onclick="syncNotion()" class="text-xs text-purple-300">Refresh</button>
+            </div>
+            <div id="tasks-list" class="space-y-1"></div>
+          </div>
+        </section>
+
+        <section id="view-calendar" class="hidden p-6">
+          <div class="max-w-5xl mx-auto">
+            <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+              <div class="flex items-center gap-3">
+                <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-panel border border-purple-900/40"><i class="fa-solid fa-chevron-left"></i></button>
+                <h3 id="cal-title" class="text-lg font-semibold text-white w-40 text-center"></h3>
+                <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-panel border border-purple-900/40"><i class="fa-solid fa-chevron-right"></i></button>
+                <button onclick="goToday()" class="text-xs px-3 py-1.5 rounded-lg bg-purple-900/50 text-purple-300 border border-purple-700/50">Today</button>
+              </div>
+            </div>
+            <div id="cal-wrap" class="grid grid-cols-7 gap-px bg-purple-900/30 rounded-xl overflow-hidden border border-purple-900/40"></div>
+            <div class="mt-6 rounded-xl bg-panel border border-purple-900/40 p-4">
+              <h4 class="text-sm font-semibold text-white mb-2">Selected day</h4>
+              <div id="day-detail" class="text-sm text-gray-400 space-y-1"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-flashcards" class="hidden p-6 max-w-3xl mx-auto space-y-6">
+          <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
+            <h3 class="font-semibold text-white mb-1">Flashcard Maker</h3>
+            <div class="flex flex-wrap gap-2 mb-4 mt-3">
+              <button onclick="setFCMode('manual')" class="fc-mode px-3 py-1.5 rounded-lg text-xs bg-purple-900/50 text-purple-300 border border-purple-700/50" data-fc="manual">Manual</button>
+              <button onclick="setFCMode('ai')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="ai">AI Generate</button>
+              <button onclick="setFCMode('quizlet')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="quizlet">Quizlet</button>
+              <button onclick="setFCMode('paste')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="paste">Paste</button>
+            </div>
+            <div id="fc-manual" class="space-y-3">
+              <input id="fc-front" placeholder="Front" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+              <input id="fc-back" placeholder="Back" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+              <input id="fc-tag" placeholder="Tag" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+              <button onclick="addManualCard()" class="bg-purple-600 text-white text-sm px-4 py-2 rounded-xl">Add Card</button>
+            </div>
+            <div id="fc-ai" class="hidden space-y-3">
+              <textarea id="fc-ai-prompt" rows="3" placeholder="e.g. 12 cards for German Vokabeln 4.3" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-3 text-sm"></textarea>
+              <button onclick="generateAICards()" id="fc-ai-btn" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm px-4 py-2 rounded-xl">Generate with AI</button>
+              <p id="fc-ai-status" class="text-xs text-gray-500"></p>
+            </div>
+            <div id="fc-quizlet" class="hidden space-y-3">
+              <input id="fc-quizlet-url" type="url" placeholder="https://quizlet.com/..." class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+              <p class="text-xs text-gray-500">Quizlet blocks browser scraping. Use Export → paste terms below.</p>
+              <textarea id="fc-quizlet-paste" rows="4" placeholder="term[tab]definition lines" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-3 text-sm font-mono text-xs"></textarea>
+              <button onclick="importQuizlet()" class="bg-purple-600 text-white text-sm px-4 py-2 rounded-xl">Import</button>
+            </div>
+            <div id="fc-paste" class="hidden space-y-3">
+              <textarea id="fc-paste-area" rows="6" placeholder="term - definition" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-3 text-sm font-mono text-xs"></textarea>
+              <button onclick="importPaste()" class="bg-purple-600 text-white text-sm px-4 py-2 rounded-xl">Import pairs</button>
+            </div>
+          </div>
+          <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
+            <div class="flex justify-between mb-4">
+              <h3 class="font-semibold text-white">Deck (<span id="deck-count">0</span>)</h3>
+              <div class="flex gap-2">
+                <button onclick="startStudy()" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg">Study</button>
+                <button onclick="clearDeck()" class="text-xs text-rose-400">Clear</button>
+              </div>
+            </div>
+            <div id="deck-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+          </div>
+          <div id="study-area" class="hidden">
+            <div class="flashcard w-full max-w-md mx-auto cursor-pointer" onclick="flipCard()">
+              <div class="flashcard-inner relative h-56">
+                <div class="flashcard-front absolute inset-0 bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border border-purple-600/50 flex items-center justify-center p-6 text-center">
+                  <p id="study-front" class="text-lg font-medium text-white"></p>
+                </div>
+                <div class="flashcard-back absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl border border-indigo-600/50 flex items-center justify-center p-6 text-center">
+                  <p id="study-back" class="text-lg font-medium text-white"></p>
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-center gap-3 mt-4">
+              <button onclick="rateStudy(1)" class="px-4 py-2 rounded-xl bg-rose-900/40 text-rose-300 text-sm">Again</button>
+              <button onclick="rateStudy(2)" class="px-4 py-2 rounded-xl bg-amber-900/40 text-amber-300 text-sm">Hard</button>
+              <button onclick="rateStudy(3)" class="px-4 py-2 rounded-xl bg-emerald-900/40 text-emerald-300 text-sm">Good</button>
+              <button onclick="rateStudy(4)" class="px-4 py-2 rounded-xl bg-indigo-900/40 text-indigo-300 text-sm">Easy</button>
+            </div>
+            <p id="study-progress" class="text-center text-xs text-gray-500 mt-3"></p>
+          </div>
+        </section>
+
+        <section id="view-revision" class="hidden p-6 max-w-3xl mx-auto">
+          <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
+            <h3 class="font-semibold text-white mb-4">Saved AI materials</h3>
+            <div id="revision-history" class="space-y-3 text-sm text-gray-400"></div>
+          </div>
+        </section>
+
+        <section id="view-plan" class="hidden p-6 max-w-3xl mx-auto">
+          <div class="rounded-2xl bg-gradient-to-r from-purple-900/40 to-indigo-900/30 border border-purple-700/40 p-6">
+            <h3 class="text-xl font-bold text-white mb-2">AI Day Planner</h3>
+            <button onclick="runPlanMyDay()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold px-5 py-2.5 rounded-xl">Generate</button>
+            <div id="plan-output-full" class="mt-5 space-y-3"></div>
+          </div>
+        </section>
+
+        <section id="view-settings" class="hidden p-6 max-w-xl mx-auto space-y-6">
+          <div class="rounded-2xl bg-panel border border-purple-900/40 p-5 space-y-3">
+            <h3 class="font-semibold text-white">Profile</h3>
             <div class="flex items-center gap-3">
-              <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-panel hover:bg-purple-900/40 border border-purple-900/40"><i class="fa-solid fa-chevron-left"></i></button>
-              <h3 id="cal-title" class="text-lg font-semibold text-white w-40 text-center">November 2026</h3>
-              <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-panel hover:bg-purple-900/40 border border-purple-900/40"><i class="fa-solid fa-chevron-right"></i></button>
-              <button onclick="goToday()" class="text-xs px-3 py-1.5 rounded-lg bg-purple-900/50 text-purple-300 border border-purple-700/50">Today</button>
-            </div>
-            <div class="flex gap-4 text-xs text-gray-400">
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Fixed Test</span>
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Üben / Revise</span>
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span> Homework</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-7 gap-px bg-purple-900/30 rounded-xl overflow-hidden border border-purple-900/40">
-            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Sun</div>
-            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Mon</div>
-            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Tue</div>
-            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Wed</div>
-            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Thu</div>
-            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Fri</div>
-            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Sat</div>
-            <div id="cal-grid" class="contents"></div>
-          </div>
-
-          <div class="mt-6 rounded-xl bg-panel border border-purple-900/40 p-4">
-            <h4 class="text-sm font-semibold text-white mb-2">Selected day tasks</h4>
-            <div id="day-detail" class="text-sm text-gray-400">Click a day to see tasks</div>
-          </div>
-        </div>
-      </section>
-
-      <section id="view-flashcards" class="hidden p-6 max-w-3xl mx-auto space-y-6">
-        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
-          <h3 class="font-semibold text-white mb-1">Flashcard Maker</h3>
-          <p class="text-xs text-gray-400 mb-4">Create your own, generate with AI, import from Quizlet, or paste term/definition pairs.</p>
-
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button onclick="setFCMode('manual')" class="fc-mode px-3 py-1.5 rounded-lg text-xs bg-purple-900/50 text-purple-300 border border-purple-700/50" data-fc="manual">Manual</button>
-            <button onclick="setFCMode('ai')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="ai">AI Generate</button>
-            <button onclick="setFCMode('quizlet')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="quizlet">Quizlet Link</button>
-            <button onclick="setFCMode('paste')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="paste">Paste Import</button>
-          </div>
-
-          <div id="fc-manual" class="space-y-3">
-            <input id="fc-front" type="text" placeholder="Front (term / question)" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
-            <input id="fc-back" type="text" placeholder="Back (definition / answer)" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
-            <input id="fc-tag" type="text" placeholder="Subject / tag (optional)" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
-            <button onclick="addManualCard()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-xl">Add Card</button>
-          </div>
-
-          <div id="fc-ai" class="hidden space-y-3">
-            <textarea id="fc-ai-prompt" rows="3" placeholder="e.g. Make 15 active-recall flashcards for German Vokabeln 4.3" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-3 text-sm"></textarea>
-            <button onclick="generateAICards()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-xl">Generate with AI</button>
-          </div>
-
-          <div id="fc-quizlet" class="hidden space-y-3">
-            <input id="fc-quizlet-url" type="url" placeholder="https://quizlet.com/xxxxx/..." class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
-            <p class="text-xs text-gray-500">Paste a public Quizlet set URL.</p>
-            <button onclick="importQuizlet()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-xl">Import from Quizlet</button>
-          </div>
-
-          <div id="fc-paste" class="hidden space-y-3">
-            <textarea id="fc-paste-area" rows="6" placeholder="term[tab]definition\nor\nterm - definition\none pair per line" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-3 text-sm font-mono text-xs"></textarea>
-            <button onclick="importPaste()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-xl">Import Pairs</button>
-          </div>
-        </div>
-
-        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-white">Your Deck (<span id="deck-count">0</span>)</h3>
-            <div class="flex gap-2">
-              <button onclick="startStudy()" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg">Study</button>
-              <button onclick="clearDeck()" class="text-xs text-rose-400 hover:text-rose-300">Clear all</button>
-            </div>
-          </div>
-          <div id="deck-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
-        </div>
-
-        <div id="study-area" class="hidden">
-          <div class="flashcard w-full max-w-md mx-auto cursor-pointer" onclick="flipCard()">
-            <div class="flashcard-inner relative h-56">
-              <div class="flashcard-front absolute inset-0 bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border border-purple-600/50 flex items-center justify-center p-6 text-center">
-                <p id="study-front" class="text-lg font-medium text-white"></p>
-              </div>
-              <div class="flashcard-back absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl border border-indigo-600/50 flex items-center justify-center p-6 text-center">
-                <p id="study-back" class="text-lg font-medium text-white"></p>
+              <img src="https://avatars.githubusercontent.com/u/213555010?v=4" class="w-12 h-12 rounded-full" alt="" />
+              <div>
+                <div class="text-white font-medium" id="settings-name">Benjamin Yu</div>
+                <div class="text-xs text-gray-400" id="settings-email">benjaminyu747@gmail.com</div>
               </div>
             </div>
           </div>
-          <div class="flex justify-center gap-3 mt-4">
-            <button onclick="rateStudy(1)" class="px-4 py-2 rounded-xl bg-rose-900/40 text-rose-300 text-sm">Again</button>
-            <button onclick="rateStudy(2)" class="px-4 py-2 rounded-xl bg-amber-900/40 text-amber-300 text-sm">Hard</button>
-            <button onclick="rateStudy(3)" class="px-4 py-2 rounded-xl bg-emerald-900/40 text-emerald-300 text-sm">Good</button>
-            <button onclick="rateStudy(4)" class="px-4 py-2 rounded-xl bg-indigo-900/40 text-indigo-300 text-sm">Easy</button>
+          <div class="rounded-2xl bg-panel border border-purple-900/40 p-5 space-y-3">
+            <h3 class="font-semibold text-white">Notion</h3>
+            <p class="text-xs text-gray-400">Checkboxes set Status to Done when Netlify has NOTION_TOKEN.</p>
+            <button onclick="syncNotion()" class="bg-purple-600 text-white text-sm px-4 py-2 rounded-xl">Sync now</button>
+            <button onclick="loadSeedTasks()" class="ml-2 text-sm text-purple-300">Load demo tasks</button>
+            <p id="settings-sync-status" class="text-xs text-gray-500"></p>
           </div>
-          <p id="study-progress" class="text-center text-xs text-gray-500 mt-3"></p>
-        </div>
-      </section>
-
-      <section id="view-revision" class="hidden p-6 max-w-3xl mx-auto">
-        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
-          <h3 class="font-semibold text-white mb-1">Saved Revision Materials</h3>
-          <p class="text-xs text-gray-400 mb-4">Sheets, plans and tests generated by the AI (stored locally).</p>
-          <div id="revision-history" class="space-y-3 text-sm text-gray-400">No materials yet. Generate some from the Home AI chat.</div>
-        </div>
-      </section>
-
-      <section id="view-plan" class="hidden p-6 max-w-3xl mx-auto">
-        <div class="rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/30 to-purple-900/40 border border-purple-700/40 p-6">
-          <h3 class="text-xl font-bold text-white mb-2">AI Day Planner</h3>
-          <p class="text-sm text-gray-400 mb-4">Uses your Notion due dates. Only includes tests if the due date is today. Revision/Üben tasks are allowed any day.</p>
-          <button onclick="runPlanMyDay()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold px-5 py-2.5 rounded-xl">Generate Today’s Plan</button>
-          <div id="plan-output-full" class="mt-5 space-y-3"></div>
-        </div>
-      </section>
-
-      <section id="view-settings" class="hidden p-6 max-w-xl mx-auto space-y-6">
-        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5 space-y-4">
-          <h3 class="font-semibold text-white">Notion Connection</h3>
-          <p class="text-xs text-gray-400">Your Assignments &amp; Tasks database is linked via Netlify functions + Notion token. For pure static use, tasks are in localStorage with demo seed matching your real tasks.</p>
-          <div class="flex gap-2">
-            <button onclick="syncNotion()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm px-4 py-2 rounded-xl">Sync Now</button>
-            <button onclick="loadSeedTasks()" class="bg-panel border border-purple-700/50 text-purple-300 text-sm px-4 py-2 rounded-xl">Load Demo Tasks</button>
+          <div class="rounded-2xl bg-panel border border-purple-900/40 p-5 space-y-3">
+            <h3 class="font-semibold text-white">AI backend</h3>
+            <p class="text-xs text-gray-400">Set GROK_API_KEY or OPENAI_API_KEY on Netlify for live model. Offline expert generator always works.</p>
           </div>
-          <p id="settings-sync-status" class="text-xs text-gray-500"></p>
-        </div>
-        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5 space-y-3">
-          <h3 class="font-semibold text-white">Google Drive</h3>
-          <input id="drive-url" type="url" placeholder="Link to your teacher PDFs folder" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
-          <button onclick="saveDrive()" class="text-sm bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl">Save</button>
-        </div>
-      </section>
-    </div>
-  </main>
+        </section>
+      </div>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>
