@@ -1,777 +1,323 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StudyHub — Notion Calendar, AI Day Planner & Active Recall</title>
+  <title>StudyHub — AI Revision & Notion Planner</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            void: '#050508',
+            surface: '#0c0c12',
+            panel: '#12121a',
+            purple: {
+              400: '#c084fc',
+              500: '#a855f7',
+              600: '#9333ea',
+              700: '#7e22ce',
+              800: '#6b21a8',
+              900: '#581c87',
+            },
+            indigo: {
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0c0c12; }
+    ::-webkit-scrollbar-thumb { background: #4c1d95; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6b21a8; }
+    .glow-purple { box-shadow: 0 0 20px rgba(168, 85, 247, 0.15); }
+    .chat-bubble-user { background: linear-gradient(135deg, #6b21a8, #4f46e5); }
+    .chat-bubble-ai { background: #1a1a24; border: 1px solid #2e1065; }
+    .sidebar-link.active { background: linear-gradient(90deg, rgba(139,92,246,0.2), transparent); border-left: 3px solid #a855f7; }
+    .day-box { min-height: 90px; }
+    .day-box.has-tasks { background: linear-gradient(180deg, #12121a 0%, #1a1030 100%); }
+    textarea:focus, input:focus { outline: none; box-shadow: 0 0 0 2px rgba(168,85,247,0.4); }
+    .flashcard { perspective: 1000px; }
+    .flashcard-inner { transition: transform 0.5s; transform-style: preserve-3d; }
+    .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .flashcard-front, .flashcard-back { backface-visibility: hidden; }
+    .flashcard-back { transform: rotateY(180deg); }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden font-sans">
+<body class="bg-void text-gray-100 h-screen flex overflow-hidden">
 
-  <!-- LEFT INDEX SIDEBAR: NOTION HOMEWORK & EXAM CALENDAR -->
-  <aside class="w-full md:w-[400px] lg:w-[440px] bg-white border-r border-slate-200 flex flex-col h-1/2 md:h-full shrink-0">
-    <!-- Sidebar Header -->
-    <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
-      <div>
-        <h1 class="font-bold text-lg tracking-tight flex items-center gap-2">
-          <span>📚 StudyHub</span>
-          <span id="notion-status" class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-            Local Mode
-          </span>
-        </h1>
-        <p class="text-xs text-slate-400">Notion HW Calendar + AI Study Planner</p>
+  <!-- LEFT SIDEBAR - INDEX GUIDE -->
+  <aside id="sidebar" class="w-64 bg-surface border-r border-purple-900/40 flex flex-col shrink-0 transition-all">
+    <div class="p-5 border-b border-purple-900/40">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-lg">📚</div>
+        <div>
+          <h1 class="font-bold text-lg tracking-tight text-white">StudyHub</h1>
+          <p class="text-[10px] text-purple-400 uppercase tracking-wider">AI Study OS</p>
+        </div>
       </div>
-      <button onclick="syncNotion()" id="sync-btn" class="text-xs bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg font-medium transition">
-        ↻ Sync Notion
+    </div>
+
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <p class="px-3 py-2 text-[10px] font-semibold text-purple-500 uppercase tracking-widest">Main</p>
+      <a href="#" onclick="showView('home')" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="home">
+        <i class="fa-solid fa-house w-5 text-center text-purple-400"></i> Home
+      </a>
+      <a href="#" onclick="showView('calendar')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="calendar">
+        <i class="fa-solid fa-calendar-days w-5 text-center text-purple-400"></i> Calendar
+      </a>
+      <a href="#" onclick="showView('flashcards')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="flashcards">
+        <i class="fa-solid fa-layer-group w-5 text-center text-purple-400"></i> Flashcards
+      </a>
+      <a href="#" onclick="showView('revision')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="revision">
+        <i class="fa-solid fa-file-lines w-5 text-center text-purple-400"></i> Revision Sheets
+      </a>
+
+      <p class="px-3 py-2 mt-4 text-[10px] font-semibold text-purple-500 uppercase tracking-widest">Tools</p>
+      <a href="#" onclick="showView('plan')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="plan">
+        <i class="fa-solid fa-brain w-5 text-center text-purple-400"></i> Plan My Day
+      </a>
+      <a href="#" onclick="showView('settings')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-purple-900/20 hover:text-white transition" data-view="settings">
+        <i class="fa-solid fa-gear w-5 text-center text-purple-400"></i> Settings / Sync
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-purple-900/40">
+      <div class="flex items-center gap-2 text-xs">
+        <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+        <span id="sync-label" class="text-gray-400">Local mode</span>
+      </div>
+      <button onclick="syncNotion()" class="mt-2 w-full text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 py-2 rounded-lg border border-purple-700/50 transition">
+        <i class="fa-solid fa-rotate mr-1"></i> Sync Notion
       </button>
-    </div>
-
-    <!-- Calendar Legend -->
-    <div class="px-4 py-1.5 bg-slate-100 border-b border-slate-200 flex items-center gap-3 text-[10px] font-medium text-slate-600">
-      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Fixed Test/Exam</span>
-      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Üben / Revise</span>
-      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Homework</span>
-    </div>
-
-    <!-- Calendar Month Controls -->
-    <div class="px-4 py-2 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-      <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-200 rounded-md text-slate-600 font-bold">&larr;</button>
-      <h2 id="cal-month-label" class="font-semibold text-sm text-slate-800">November 2026</h2>
-      <div class="flex gap-1">
-        <button onclick="goToday()" class="text-xs px-2 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100">Today</button>
-        <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-200 rounded-md text-slate-600 font-bold">&rarr;</button>
-      </div>
-    </div>
-
-    <!-- Weekday Headers -->
-    <div class="grid grid-cols-7 text-center text-[11px] font-semibold text-slate-500 border-b border-slate-200 bg-slate-50 py-1">
-      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-    </div>
-
-    <!-- Calendar Day Boxes Grid -->
-    <div id="calendar-grid" class="grid grid-cols-7 flex-1 auto-rows-fr overflow-y-auto bg-slate-200 gap-[1px]">
-      <!-- Populated by JS -->
-    </div>
-
-    <!-- Quick Add Local HW / Selected Day Inspector -->
-    <div class="p-3 border-t border-slate-200 bg-slate-50 text-xs">
-      <div class="flex items-center justify-between mb-1.5">
-        <span id="selected-date-label" class="font-semibold text-slate-700">Selected: Today</span>
-        <span class="text-slate-400">Click box to select day</span>
-      </div>
-      <div class="flex gap-1.5">
-        <input id="quick-hw-title" type="text" placeholder="Add HW, 'Üben: ...', or 'Test: ...'" class="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-md bg-white focus:outline-none focus:border-indigo-500" onkeydown="if(event.key==='Enter') addLocalTask()" />
-        <button onclick="addLocalTask()" class="bg-slate-800 text-white px-3 py-1.5 rounded-md hover:bg-slate-700 font-medium">+ Add</button>
-      </div>
     </div>
   </aside>
 
-  <!-- RIGHT MAIN WORKSPACE -->
-  <main class="flex-1 flex flex-col h-1/2 md:h-full overflow-hidden">
-    <!-- Top Navigation Tabs -->
-    <header class="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap gap-2">
-        <button onclick="switchTab('home')" id="tab-home" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-600 text-white">
-          ✨ Home & Day Planner
-        </button>
-        <button onclick="switchTab('pdf')" id="tab-pdf" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
-          📄 PDF &rarr; Flashcards
-        </button>
-        <button onclick="switchTab('remnote')" id="tab-remnote" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
-          🗂️ Deck (<span id="deck-count">0</span>)
-        </button>
-        <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
-          🧠 Active Recall Quiz
-        </button>
-      </div>
-
-      <!-- Google Drive Folder Shortcut -->
-      <div class="flex items-center gap-2">
-        <a id="drive-link" href="https://drive.google.com" target="_blank" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 font-medium text-slate-700">
-          <span>📁 Google Drive</span>
-        </a>
-        <button onclick="setDriveFolder()" title="Set your teacher PDF folder link" class="text-xs px-2 py-1.5 text-slate-500 hover:text-slate-800">⚙️</button>
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 flex flex-col overflow-hidden bg-void">
+    <header class="h-14 border-b border-purple-900/30 flex items-center justify-between px-6 bg-surface/80 backdrop-blur shrink-0">
+      <h2 id="view-title" class="font-semibold text-white">Home</h2>
+      <div class="flex items-center gap-3 text-xs text-gray-400">
+        <span id="today-label"></span>
+        <span class="px-2 py-1 rounded bg-purple-900/40 text-purple-300 border border-purple-700/40">Dark Mode</span>
       </div>
     </header>
 
-    <!-- TAB 0: HOMEPAGE & AI DAY PLANNER -->
-    <section id="view-home" class="flex-1 overflow-y-auto p-6 space-y-6">
-      <div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex-1 overflow-y-auto">
 
-        <!-- AI Plan My Day Banner -->
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div class="space-y-1">
-            <div class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-              <span>🤖 AI Schedule Assistant</span>
+      <section id="view-home" class="p-6 max-w-4xl mx-auto space-y-6">
+        <div class="rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/30 to-purple-900/40 border border-purple-700/40 p-6 glow-purple">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 mb-2">
+                <i class="fa-solid fa-sparkles"></i> AI Day Planner
+              </div>
+              <h3 class="text-xl font-bold text-white">Plan My Day</h3>
+              <p class="text-sm text-gray-400 mt-1 max-w-md">
+                Looks at your Notion assignments. Schedules homework &amp; “Üben/revise” tasks. 
+                <strong class="text-purple-300">Never moves fixed tests</strong> unless due today.
+              </p>
             </div>
-            <h2 class="text-xl font-bold tracking-tight">Ready to tackle today's study session?</h2>
-            <p class="text-xs text-slate-300 max-w-md">
-              Analyzes your Notion due dates, locks teacher-set <strong>Test dates</strong> as fixed milestones, and schedules your <strong>"Üben" / "revise"</strong> tasks &amp; homework.
-            </p>
-          </div>
-          <button onclick="planMyDay()" id="plan-btn" class="shrink-0 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm px-5 py-3 rounded-xl shadow-lg transition flex items-center gap-2">
-            <span>✨ Plan My Day</span>
-          </button>
-        </div>
-
-        <!-- AI Output Container -->
-        <div id="ai-plan-output" class="hidden space-y-4">
-          <!-- Summary Box -->
-          <div class="bg-white p-5 rounded-xl border border-indigo-200 shadow-sm">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider text-indigo-700">Today's AI Action Plan</h3>
-              <span id="ai-mode-badge" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">AI Generated</span>
-            </div>
-            <p id="ai-summary-text" class="text-sm text-slate-700 leading-relaxed"></p>
-          </div>
-
-          <!-- Upcoming Fixed Tests (Locked Dates) -->
-          <div id="ai-tests-box" class="bg-rose-50/70 p-4 rounded-xl border border-rose-200">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-rose-800 mb-2 flex items-center gap-1.5">
-              <span>📌 Fixed Teacher Test Dates (Cannot Be Rescheduled)</span>
-            </h4>
-            <div id="ai-tests-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
-          </div>
-
-          <!-- Prioritized Tasks for Today -->
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">What You Should Do Today</h4>
-            <div id="ai-tasks-list" class="space-y-2.5"></div>
-          </div>
-        </div>
-
-        <!-- Quick Workflow Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div onclick="switchTab('pdf')" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-indigo-400 cursor-pointer transition shadow-sm">
-            <div class="text-2xl mb-2">📄 &rarr; 🧠</div>
-            <h3 class="font-bold text-slate-900 text-sm">Convert Teacher PDF to Quiz</h3>
-            <p class="text-xs text-slate-500 mt-1">Upload a PDF from Google Drive or GoodNotes and generate RemNote-style active recall cards.</p>
-          </div>
-          <div onclick="switchTab('quiz')" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-indigo-400 cursor-pointer transition shadow-sm">
-            <div class="text-2xl mb-2">⚡</div>
-            <h3 class="font-bold text-slate-900 text-sm">Start Active Recall Session</h3>
-            <p class="text-xs text-slate-500 mt-1">Practice your saved flashcards and cloze deletions before your next "Üben" deadline.</p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- TAB 1: PDF UPLOAD & AUTO-CARD EXTRACTOR -->
-    <section id="view-pdf" class="hidden flex-1 overflow-y-auto p-6 space-y-6">
-      <div class="max-w-3xl mx-auto space-y-6">
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h2 class="text-lg font-bold text-slate-900 mb-1">Upload Teacher PDF or GoodNotes Export</h2>
-          <p class="text-sm text-slate-500 mb-4">Download your PDF from Google Drive, drop it here, and generate active recall flashcards &amp; fill-in-the-blank cloze prompts.</p>
-
-          <label class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 rounded-xl p-8 bg-indigo-50/40 hover:bg-indigo-50 cursor-pointer transition">
-            <span class="text-3xl mb-2">📄</span>
-            <span class="text-sm font-semibold text-indigo-700">Click to select a PDF file</span>
-            <span class="text-xs text-slate-500 mt-1">Supports AI extraction + local browser fallback</span>
-            <input type="file" id="pdf-upload" accept="application/pdf" class="hidden" onchange="handlePDFUpload(event)" />
-          </label>
-          <p id="pdf-status" class="text-xs text-slate-500 mt-3"></p>
-        </div>
-
-        <div id="pdf-workspace" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold text-slate-800">Extracted PDF Notes</h3>
-            <button onclick="autoGenerateFromPDF()" id="pdf-gen-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2 rounded-lg font-semibold shadow-sm">
-              ✨ Auto-Generate Active Recall Cards
+            <button onclick="runPlanMyDay()" id="plan-btn" class="shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-purple-900/40 transition flex items-center gap-2">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Plan My Day
             </button>
           </div>
-          <textarea id="pdf-text-output" rows="8" class="w-full p-3 text-sm border border-slate-300 rounded-lg font-mono bg-slate-50 focus:outline-none focus:border-indigo-500"></textarea>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 2: REMNOTE-STYLE OUTLINER & DECK MANAGER -->
-    <section id="view-remnote" class="hidden flex-1 overflow-y-auto p-6">
-      <div class="max-w-3xl mx-auto space-y-6">
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
-          <h2 class="font-bold text-slate-900">Quick-Add RemNote Style Cards</h2>
-          <p class="text-xs text-slate-500">
-            Use <code class="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-600 font-bold">&gt;&gt;</code> for Front/Back cards or <code class="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-600 font-bold">{{c1::answer}}</code> for Cloze fill-in-the-blank.
-          </p>
-          <div class="flex gap-2">
-            <input id="rem-input" type="text" placeholder="Concept >> Definition  OR  The powerhouse of the cell is {{c1::mitochondria}}" class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500" onkeydown="if(event.key==='Enter') addRemCard()" />
-            <input id="rem-tag" type="text" placeholder="Subject" class="w-28 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-            <button onclick="addRemCard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Add</button>
-          </div>
+          <div id="plan-output" class="hidden mt-5 space-y-3"></div>
         </div>
 
-        <div id="cards-list" class="space-y-2.5"></div>
-      </div>
-    </section>
-
-    <!-- TAB 3: ACTIVE RECALL QUIZ ENGINE -->
-    <section id="view-quiz" class="hidden flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center">
-      <div class="w-full max-w-xl space-y-6">
-        <div class="flex items-center justify-between text-sm text-slate-500">
-          <span id="quiz-progress">Card 1 of 1</span>
-          <button onclick="shuffleQuiz()" class="text-indigo-600 hover:underline font-medium">🔀 Shuffle Deck</button>
-        </div>
-
-        <div id="quiz-card-box" class="bg-white border border-slate-200 rounded-2xl shadow-md p-8 min-h-[260px] flex flex-col justify-between">
-          <div>
-            <span id="quiz-tag" class="text-[11px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600">Subject</span>
-            <h3 id="quiz-question" class="text-xl font-semibold text-slate-900 mt-4 leading-relaxed">
-              Add flashcards from a PDF or the Deck tab to start quizzing!
-            </h3>
-          </div>
-
-          <div class="mt-6 space-y-3">
-            <input id="quiz-typed-answer" type="text" placeholder="Type your recall answer before revealing..." class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500" onkeydown="if(event.key==='Enter') revealAnswer()" />
-
-            <div id="quiz-answer-box" class="hidden p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm">
-              <div class="font-bold text-xs uppercase text-emerald-700 mb-1">Answer</div>
-              <div id="quiz-answer-text" class="text-base font-medium"></div>
+        <div class="rounded-2xl bg-panel border border-purple-900/40 overflow-hidden flex flex-col" style="min-height: 420px;">
+          <div class="px-5 py-3 border-b border-purple-900/40 flex items-center justify-between bg-surface">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              <span class="font-medium text-sm text-white">AI Study Assistant</span>
+            </div>
+            <div class="flex gap-2 text-xs">
+              <button onclick="setAIMode('sheet')" class="ai-mode-btn px-2.5 py-1 rounded-lg bg-purple-900/50 text-purple-300 border border-purple-700/50" data-mode="sheet">Revision Sheet</button>
+              <button onclick="setAIMode('plan')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="plan">Revision Plan</button>
+              <button onclick="setAIMode('mock')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="mock">Mock Test</button>
+              <button onclick="setAIMode('practice')" class="ai-mode-btn px-2.5 py-1 rounded-lg text-gray-400 hover:bg-purple-900/30" data-mode="practice">Practice</button>
             </div>
           </div>
-        </div>
 
-        <div class="flex justify-center gap-3">
-          <button id="reveal-btn" onclick="revealAnswer()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-medium text-sm shadow">
-            Show Answer (Enter)
-          </button>
-          <div id="rating-btns" class="hidden flex gap-2">
-            <button onclick="rateCard(1)" class="px-4 py-2 rounded-xl bg-rose-100 text-rose-700 hover:bg-rose-200 font-semibold text-sm">Again</button>
-            <button onclick="rateCard(2)" class="px-4 py-2 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold text-sm">Hard</button>
-            <button onclick="rateCard(3)" class="px-4 py-2 rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-semibold text-sm">Good</button>
-            <button onclick="rateCard(4)" class="px-4 py-2 rounded-xl bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-semibold text-sm">Easy</button>
+          <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4">
+            <div class="chat-bubble-ai rounded-2xl rounded-tl-sm p-4 text-sm text-gray-300 max-w-[90%]">
+              <p class="mb-2">Hey! I can create <strong class="text-purple-300">revision sheets</strong>, <strong class="text-purple-300">revision plans</strong>, <strong class="text-purple-300">mock tests</strong> and <strong class="text-purple-300">practice tests</strong>.</p>
+              <p class="mb-2">Attach teacher PDFs or paste website links — I’ll use them as sources. Everything can be downloaded as PDF.</p>
+              <p class="text-xs text-gray-500">Tip: mention the subject + topics (e.g. “Make a revision sheet for German Vokabeln 4.3”)</p>
+            </div>
+          </div>
+
+          <div id="attach-preview" class="px-4 hidden flex flex-wrap gap-2"></div>
+
+          <div class="p-4 border-t border-purple-900/40 bg-surface">
+            <div class="flex items-end gap-2">
+              <div class="flex gap-1">
+                <label class="cursor-pointer p-2.5 rounded-xl bg-panel hover:bg-purple-900/40 text-purple-400 border border-purple-900/40 transition" title="Attach files">
+                  <i class="fa-solid fa-paperclip"></i>
+                  <input type="file" id="file-attach" multiple accept=".pdf,.txt,.md,.doc,.docx,.png,.jpg" class="hidden" onchange="handleFiles(event)" />
+                </label>
+                <button onclick="promptLink()" class="p-2.5 rounded-xl bg-panel hover:bg-purple-900/40 text-purple-400 border border-purple-900/40 transition" title="Add link">
+                  <i class="fa-solid fa-link"></i>
+                </button>
+              </div>
+              <textarea id="chat-input" rows="1" placeholder="Ask for a revision sheet, plan, mock test… (or describe topics)" class="flex-1 bg-panel border border-purple-900/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 resize-none max-h-32" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+              <button onclick="sendChat()" class="p-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white transition">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-2">Sources &amp; attachments are used by the AI. Generated PDFs appear as download buttons in the chat.</p>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section id="view-calendar" class="hidden p-6">
+        <div class="max-w-5xl mx-auto">
+          <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-3">
+              <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-panel hover:bg-purple-900/40 border border-purple-900/40"><i class="fa-solid fa-chevron-left"></i></button>
+              <h3 id="cal-title" class="text-lg font-semibold text-white w-40 text-center">November 2026</h3>
+              <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-panel hover:bg-purple-900/40 border border-purple-900/40"><i class="fa-solid fa-chevron-right"></i></button>
+              <button onclick="goToday()" class="text-xs px-3 py-1.5 rounded-lg bg-purple-900/50 text-purple-300 border border-purple-700/50">Today</button>
+            </div>
+            <div class="flex gap-4 text-xs text-gray-400">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Fixed Test</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Üben / Revise</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span> Homework</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-7 gap-px bg-purple-900/30 rounded-xl overflow-hidden border border-purple-900/40">
+            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Sun</div>
+            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Mon</div>
+            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Tue</div>
+            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Wed</div>
+            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Thu</div>
+            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Fri</div>
+            <div class="bg-surface py-2 text-center text-xs font-semibold text-purple-400">Sat</div>
+            <div id="cal-grid" class="contents"></div>
+          </div>
+
+          <div class="mt-6 rounded-xl bg-panel border border-purple-900/40 p-4">
+            <h4 class="text-sm font-semibold text-white mb-2">Selected day tasks</h4>
+            <div id="day-detail" class="text-sm text-gray-400">Click a day to see tasks</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-flashcards" class="hidden p-6 max-w-3xl mx-auto space-y-6">
+        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
+          <h3 class="font-semibold text-white mb-1">Flashcard Maker</h3>
+          <p class="text-xs text-gray-400 mb-4">Create your own, generate with AI, import from Quizlet, or paste term/definition pairs.</p>
+
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button onclick="setFCMode('manual')" class="fc-mode px-3 py-1.5 rounded-lg text-xs bg-purple-900/50 text-purple-300 border border-purple-700/50" data-fc="manual">Manual</button>
+            <button onclick="setFCMode('ai')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="ai">AI Generate</button>
+            <button onclick="setFCMode('quizlet')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="quizlet">Quizlet Link</button>
+            <button onclick="setFCMode('paste')" class="fc-mode px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-purple-900/30" data-fc="paste">Paste Import</button>
+          </div>
+
+          <div id="fc-manual" class="space-y-3">
+            <input id="fc-front" type="text" placeholder="Front (term / question)" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+            <input id="fc-back" type="text" placeholder="Back (definition / answer)" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+            <input id="fc-tag" type="text" placeholder="Subject / tag (optional)" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+            <button onclick="addManualCard()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-xl">Add Card</button>
+          </div>
+
+          <div id="fc-ai" class="hidden space-y-3">
+            <textarea id="fc-ai-prompt" rows="3" placeholder="e.g. Make 15 active-recall flashcards for German Vokabeln 4.3" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-3 text-sm"></textarea>
+            <button onclick="generateAICards()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-xl">Generate with AI</button>
+          </div>
+
+          <div id="fc-quizlet" class="hidden space-y-3">
+            <input id="fc-quizlet-url" type="url" placeholder="https://quizlet.com/xxxxx/..." class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+            <p class="text-xs text-gray-500">Paste a public Quizlet set URL.</p>
+            <button onclick="importQuizlet()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-xl">Import from Quizlet</button>
+          </div>
+
+          <div id="fc-paste" class="hidden space-y-3">
+            <textarea id="fc-paste-area" rows="6" placeholder="term[tab]definition\nor\nterm - definition\none pair per line" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-3 text-sm font-mono text-xs"></textarea>
+            <button onclick="importPaste()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-xl">Import Pairs</button>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-white">Your Deck (<span id="deck-count">0</span>)</h3>
+            <div class="flex gap-2">
+              <button onclick="startStudy()" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg">Study</button>
+              <button onclick="clearDeck()" class="text-xs text-rose-400 hover:text-rose-300">Clear all</button>
+            </div>
+          </div>
+          <div id="deck-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+        </div>
+
+        <div id="study-area" class="hidden">
+          <div class="flashcard w-full max-w-md mx-auto cursor-pointer" onclick="flipCard()">
+            <div class="flashcard-inner relative h-56">
+              <div class="flashcard-front absolute inset-0 bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border border-purple-600/50 flex items-center justify-center p-6 text-center">
+                <p id="study-front" class="text-lg font-medium text-white"></p>
+              </div>
+              <div class="flashcard-back absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl border border-indigo-600/50 flex items-center justify-center p-6 text-center">
+                <p id="study-back" class="text-lg font-medium text-white"></p>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-center gap-3 mt-4">
+            <button onclick="rateStudy(1)" class="px-4 py-2 rounded-xl bg-rose-900/40 text-rose-300 text-sm">Again</button>
+            <button onclick="rateStudy(2)" class="px-4 py-2 rounded-xl bg-amber-900/40 text-amber-300 text-sm">Hard</button>
+            <button onclick="rateStudy(3)" class="px-4 py-2 rounded-xl bg-emerald-900/40 text-emerald-300 text-sm">Good</button>
+            <button onclick="rateStudy(4)" class="px-4 py-2 rounded-xl bg-indigo-900/40 text-indigo-300 text-sm">Easy</button>
+          </div>
+          <p id="study-progress" class="text-center text-xs text-gray-500 mt-3"></p>
+        </div>
+      </section>
+
+      <section id="view-revision" class="hidden p-6 max-w-3xl mx-auto">
+        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5">
+          <h3 class="font-semibold text-white mb-1">Saved Revision Materials</h3>
+          <p class="text-xs text-gray-400 mb-4">Sheets, plans and tests generated by the AI (stored locally).</p>
+          <div id="revision-history" class="space-y-3 text-sm text-gray-400">No materials yet. Generate some from the Home AI chat.</div>
+        </div>
+      </section>
+
+      <section id="view-plan" class="hidden p-6 max-w-3xl mx-auto">
+        <div class="rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/30 to-purple-900/40 border border-purple-700/40 p-6">
+          <h3 class="text-xl font-bold text-white mb-2">AI Day Planner</h3>
+          <p class="text-sm text-gray-400 mb-4">Uses your Notion due dates. Only includes tests if the due date is today. Revision/Üben tasks are allowed any day.</p>
+          <button onclick="runPlanMyDay()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold px-5 py-2.5 rounded-xl">Generate Today’s Plan</button>
+          <div id="plan-output-full" class="mt-5 space-y-3"></div>
+        </div>
+      </section>
+
+      <section id="view-settings" class="hidden p-6 max-w-xl mx-auto space-y-6">
+        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5 space-y-4">
+          <h3 class="font-semibold text-white">Notion Connection</h3>
+          <p class="text-xs text-gray-400">Your Assignments &amp; Tasks database is linked via Netlify functions + Notion token. For pure static use, tasks are in localStorage with demo seed matching your real tasks.</p>
+          <div class="flex gap-2">
+            <button onclick="syncNotion()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm px-4 py-2 rounded-xl">Sync Now</button>
+            <button onclick="loadSeedTasks()" class="bg-panel border border-purple-700/50 text-purple-300 text-sm px-4 py-2 rounded-xl">Load Demo Tasks</button>
+          </div>
+          <p id="settings-sync-status" class="text-xs text-gray-500"></p>
+        </div>
+        <div class="rounded-2xl bg-panel border border-purple-900/40 p-5 space-y-3">
+          <h3 class="font-semibold text-white">Google Drive</h3>
+          <input id="drive-url" type="url" placeholder="Link to your teacher PDFs folder" class="w-full bg-surface border border-purple-900/50 rounded-xl px-4 py-2.5 text-sm" />
+          <button onclick="saveDrive()" class="text-sm bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl">Save</button>
+        </div>
+      </section>
+    </div>
   </main>
 
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    // --- STATE ---
-    let currentDate = new Date();
-    let selectedDateStr = formatDateISO(new Date());
-    let tasks = JSON.parse(localStorage.getItem('studyhub_tasks') || '[]');
-    let cards = JSON.parse(localStorage.getItem('studyhub_cards') || '[]');
-    let driveUrl = localStorage.getItem('studyhub_drive') || 'https://drive.google.com';
-    let quizIndex = 0;
-
-    document.getElementById('drive-link').href = driveUrl;
-
-    // Seed sample tasks demonstrating Fixed Tests vs "Üben"/revise vs HW
-    if (tasks.length === 0) {
-      const addDays = (n) => {
-        const d = new Date();
-        d.setDate(d.getDate() + n);
-        return formatDateISO(d);
-      };
-      tasks = [
-        { id: '1', title: 'Math Ex 4.2', date: addDays(0), subject: 'Math', done: false },
-        { id: '2', title: 'Üben: German Vocab Ch.5', date: addDays(2), subject: 'German', done: false },
-        { id: '3', title: 'German Vocab Test', date: addDays(3), subject: 'German', done: false },
-        { id: '4', title: 'Revise Cell Division PDF', date: addDays(4), subject: 'Biology', done: false },
-        { id: '5', title: 'Biology Unit Exam', date: addDays(5), subject: 'Biology', done: false }
-      ];
-      saveTasks();
-    }
-
-    if (cards.length === 0) {
-      cards = [
-        { id: 'c1', type: 'basic', front: 'What is Active Recall?', back: 'Actively retrieving information from memory rather than passively re-reading notes.', tag: 'Study Skills', ease: 2.5 },
-        { id: 'c2', type: 'cloze', front: 'Spaced repetition combats the {{c1::Ebbinghaus forgetting curve}}.', back: 'Ebbinghaus forgetting curve', tag: 'Study Skills', ease: 2.5 }
-      ];
-      saveCards();
-    }
-
-    // --- TASK CLASSIFICATION HELPERS ---
-    function classifyTask(title) {
-      const lower = title.toLowerCase();
-      if (lower.includes('üben') || lower.includes('uben') || lower.includes('revise') || lower.includes('revision')) {
-        return 'revise';
-      }
-      if (lower.includes('test') || lower.includes('exam') || lower.includes('quiz') || lower.includes('klausur') || lower.includes('klassenarbeit')) {
-        return 'test';
-      }
-      return 'hw';
-    }
-
-    // --- AI PLAN MY DAY ---
-    async function planMyDay() {
-      const btn = document.getElementById('plan-btn');
-      const output = document.getElementById('ai-plan-output');
-      const modeBadge = document.getElementById('ai-mode-badge');
-      const todayStr = formatDateISO(new Date());
-
-      btn.disabled = true;
-      btn.innerHTML = '<span>⏳ Analyzing Notion &amp; Tests...</span>';
-
-      const openTasks = tasks.filter(t => !t.done);
-
-      try {
-        const res = await fetch('/.netlify/functions/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'plan_day', today: todayStr, tasks: openTasks })
-        });
-        if (!res.ok) throw new Error('AI backend unavailable');
-        const plan = await res.json();
-        modeBadge.textContent = 'Gemini AI Plan';
-        renderDayPlan(plan);
-      } catch (err) {
-        modeBadge.textContent = 'Smart Rule Fallback';
-        const fallbackPlan = buildLocalFallbackPlan(todayStr, openTasks);
-        renderDayPlan(fallbackPlan);
-      } finally {
-        output.classList.remove('hidden');
-        btn.disabled = false;
-        btn.innerHTML = '<span>✨ Plan My Day</span>';
-      }
-    }
-
-    function buildLocalFallbackPlan(todayStr, openTasks) {
-      const todayMs = new Date(todayStr).getTime();
-      const upcomingTests = [];
-      const todayPlan = [];
-
-      openTasks.forEach(t => {
-        if (!t.date) return;
-        const type = classifyTask(t.title);
-        const daysLeft = Math.round((new Date(t.date).getTime() - todayMs) / (1000 * 60 * 60 * 24));
-
-        if (type === 'test') {
-          if (daysLeft >= 0 && daysLeft <= 14) {
-            upcomingTests.push({ title: t.title, date: t.date, daysLeft });
-          }
-        } else if (type === 'revise') {
-          if (daysLeft <= 5) {
-            todayPlan.push({
-              priority: daysLeft <= 2 ? 'High' : 'Medium',
-              task: t.title,
-              reason: `Test prep ("Üben/revise") due ${t.date} (${daysLeft <= 0 ? 'Today!' : daysLeft + 'd left'})`,
-              suggestedMinutes: 35
-            });
-          }
-        } else {
-          if (daysLeft <= 2) {
-            todayPlan.push({
-              priority: daysLeft <= 0 ? 'High' : 'Medium',
-              task: t.title,
-              reason: daysLeft < 0 ? `Overdue (${t.date})` : daysLeft === 0 ? 'Due today' : `Due in ${daysLeft} day(s)`,
-              suggestedMinutes: 30
-            });
-          }
-        }
-      });
-
-      upcomingTests.sort((a, b) => a.daysLeft - b.daysLeft);
-      todayPlan.sort((a, b) => (a.priority === 'High' ? -1 : 1));
-
-      return {
-        summary: `You have ${todayPlan.length} actionable study/HW item(s) for today and ${upcomingTests.length} locked teacher test date(s) ahead.`,
-        upcomingTests,
-        todayPlan: todayPlan.length ? todayPlan : [{
-          priority: 'Low',
-          task: 'Review Active Recall Flashcards',
-          reason: 'No urgent HW due today—stay ahead on spaced repetition!',
-          suggestedMinutes: 20
-        }]
-      };
-    }
-
-    function renderDayPlan(plan) {
-      document.getElementById('ai-summary-text').textContent = plan.summary || '';
-
-      const testsList = document.getElementById('ai-tests-list');
-      if (plan.upcomingTests && plan.upcomingTests.length > 0) {
-        document.getElementById('ai-tests-box').classList.remove('hidden');
-        testsList.innerHTML = plan.upcomingTests.map(test => `
-          <div class="bg-white border border-rose-200 rounded-lg px-3 py-2 flex items-center justify-between">
-            <div>
-              <div class="font-semibold text-xs text-slate-900">${test.title}</div>
-              <div class="text-[11px] text-rose-600 font-medium">Locked Date: ${test.date}</div>
-            </div>
-            <span class="text-xs font-bold px-2 py-1 rounded bg-rose-100 text-rose-800">
-              ${test.daysLeft === 0 ? 'TODAY' : `in ${test.daysLeft}d`}
-            </span>
-          </div>
-        `).join('');
-      } else {
-        document.getElementById('ai-tests-box').classList.add('hidden');
-      }
-
-      const tasksList = document.getElementById('ai-tasks-list');
-      tasksList.innerHTML = (plan.todayPlan || []).map(item => {
-        const badgeColor = item.priority === 'High'
-          ? 'bg-rose-100 text-rose-700'
-          : item.priority === 'Medium'
-          ? 'bg-amber-100 text-amber-700'
-          : 'bg-emerald-100 text-emerald-700';
-        return `
-          <div class="flex items-start justify-between gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/60">
-            <div class="space-y-0.5">
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ${badgeColor}">${item.priority}</span>
-                <span class="font-semibold text-sm text-slate-900">${item.task}</span>
-              </div>
-              <p class="text-xs text-slate-500">${item.reason}</p>
-            </div>
-            <span class="text-xs font-medium text-slate-500 shrink-0">~${item.suggestedMinutes || 25} min</span>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // --- NOTION SYNC ---
-    async function syncNotion() {
-      const btn = document.getElementById('sync-btn');
-      const status = document.getElementById('notion-status');
-      btn.textContent = 'Syncing...';
-      try {
-        const res = await fetch('/.netlify/functions/notion');
-        if (!res.ok) throw new Error('Notion function not configured yet');
-        const data = await res.json();
-        if (data.tasks) {
-          tasks = data.tasks;
-          saveTasks();
-          renderCalendar();
-          status.textContent = 'Notion Live';
-          status.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-        }
-      } catch (e) {
-        status.textContent = 'Local Mode';
-      } finally {
-        btn.textContent = '↻ Sync Notion';
-      }
-    }
-
-    // --- CALENDAR LOGIC ---
-    function formatDateISO(d) {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    function changeMonth(delta) {
-      currentDate.setMonth(currentDate.getMonth() + delta);
-      renderCalendar();
-    }
-
-    function goToday() {
-      currentDate = new Date();
-      selectedDateStr = formatDateISO(currentDate);
-      renderCalendar();
-    }
-
-    function renderCalendar() {
-      const grid = document.getElementById('calendar-grid');
-      const label = document.getElementById('cal-month-label');
-      grid.innerHTML = '';
-
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      label.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const todayStr = formatDateISO(new Date());
-
-      for (let i = 0; i < firstDay; i++) {
-        const empty = document.createElement('div');
-        empty.className = 'bg-slate-50/70 p-1';
-        grid.appendChild(empty);
-      }
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayTasks = tasks.filter(t => t.date === dateStr);
-        const isToday = dateStr === todayStr;
-        const isSelected = dateStr === selectedDateStr;
-
-        const cell = document.createElement('div');
-        cell.className = `bg-white p-1 flex flex-col min-h-[74px] cursor-pointer hover:bg-indigo-50/40 transition overflow-hidden ${isSelected ? 'ring-2 ring-inset ring-indigo-500' : ''}`;
-        cell.onclick = () => {
-          selectedDateStr = dateStr;
-          document.getElementById('selected-date-label').textContent = `Selected: ${dateStr}`;
-          renderCalendar();
-        };
-
-        const header = document.createElement('div');
-        header.className = 'flex justify-between items-center mb-0.5';
-        header.innerHTML = `<span class="text-[11px] font-semibold ${isToday ? 'bg-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-600'}">${day}</span>`;
-        cell.appendChild(header);
-
-        const list = document.createElement('div');
-        list.className = 'space-y-0.5 overflow-y-auto flex-1';
-        dayTasks.forEach(task => {
-          const kind = classifyTask(task.title);
-          let style = 'bg-indigo-50 text-indigo-800 border-indigo-200 font-medium';
-          if (kind === 'test') style = 'bg-rose-50 text-rose-800 border-rose-300 font-bold';
-          if (kind === 'revise') style = 'bg-amber-50 text-amber-800 border-amber-300 font-medium';
-          if (task.done) style = 'bg-slate-100 text-slate-400 line-through border-slate-200';
-
-          const badge = document.createElement('div');
-          badge.className = `text-[10px] leading-tight px-1 py-0.5 rounded truncate border ${style}`;
-          badge.title = `${kind === 'test' ? '[FIXED TEST] ' : ''}${task.title}`;
-          badge.textContent = (kind === 'test' ? '📌 ' : '') + task.title;
-          badge.onclick = (e) => {
-            e.stopPropagation();
-            task.done = !task.done;
-            saveTasks();
-            renderCalendar();
-          };
-          list.appendChild(badge);
-        });
-
-        cell.appendChild(list);
-        grid.appendChild(cell);
-      }
-    }
-
-    function addLocalTask() {
-      const input = document.getElementById('quick-hw-title');
-      if (!input.value.trim()) return;
-      tasks.push({
-        id: Date.now().toString(),
-        title: input.value.trim(),
-        date: selectedDateStr,
-        subject: 'HW',
-        done: false
-      });
-      input.value = '';
-      saveTasks();
-      renderCalendar();
-    }
-
-    function saveTasks() {
-      localStorage.setItem('studyhub_tasks', JSON.stringify(tasks));
-    }
-
-    // --- PDF EXTRACTION & AI FLASHCARDS ---
-    async function handlePDFUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const status = document.getElementById('pdf-status');
-      status.textContent = `Reading "${file.name}"...`;
-
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let fullText = '';
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const strings = content.items.map(item => item.str);
-        fullText += `--- Page ${i} ---\n` + strings.join(' ') + '\n\n';
-      }
-
-      document.getElementById('pdf-text-output').value = fullText;
-      document.getElementById('pdf-workspace').classList.remove('hidden');
-      status.textContent = `Loaded ${pdf.numPages} pages from "${file.name}".`;
-    }
-
-    async function autoGenerateFromPDF() {
-      const text = document.getElementById('pdf-text-output').value;
-      const btn = document.getElementById('pdf-gen-btn');
-      btn.disabled = true;
-      btn.textContent = '⏳ Generating Flashcards...';
-
-      try {
-        const res = await fetch('/.netlify/functions/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'generate_cards', pdfText: text })
-        });
-        if (!res.ok) throw new Error('AI card endpoint unavailable');
-        const aiCards = await res.json();
-        if (Array.isArray(aiCards) && aiCards.length > 0) {
-          aiCards.forEach(c => {
-            cards.unshift({
-              id: Math.random().toString(36).slice(2),
-              type: c.type || 'basic',
-              front: c.front,
-              back: c.back,
-              tag: c.tag || 'PDF AI',
-              ease: 2.5
-            });
-          });
-          saveCards();
-          renderCardsList();
-          alert(`AI generated ${aiCards.length} active recall cards!`);
-          switchTab('remnote');
-          return;
-        }
-      } catch (e) {
-        const sentences = text
-          .replace(/--- Page \d+ ---/g, '')
-          .split(/(?<=[.?!])\s+/)
-          .map(s => s.trim())
-          .filter(s => s.length > 35 && s.length < 220);
-
-        let added = 0;
-        sentences.slice(0, 12).forEach(sentence => {
-          const colonMatch = sentence.match(/^([^:]{3,40}):\s+(.+)$/);
-          if (colonMatch) {
-            cards.unshift({
-              id: Math.random().toString(36).slice(2),
-              type: 'basic',
-              front: `Define: ${colonMatch[1].trim()}`,
-              back: colonMatch[2].trim(),
-              tag: 'PDF Extract',
-              ease: 2.5
-            });
-            added++;
-          } else {
-            const words = sentence.split(' ');
-            const targetIdx = words.findIndex(w => w.replace(/[^a-zA-Z]/g, '').length >= 7);
-            if (targetIdx !== -1) {
-              const cleanAnswer = words[targetIdx].replace(/[.,;!?()]/g, '');
-              const clozeSentence = words.map((w, i) => i === targetIdx ? `{{c1::${cleanAnswer}}}` : w).join(' ');
-              cards.unshift({
-                id: Math.random().toString(36).slice(2),
-                type: 'cloze',
-                front: clozeSentence,
-                back: cleanAnswer,
-                tag: 'PDF Cloze',
-                ease: 2.5
-              });
-              added++;
-            }
-          }
-        });
-        saveCards();
-        renderCardsList();
-        alert(`Generated ${added} active recall flashcards from your PDF!`);
-        switchTab('remnote');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '✨ Auto-Generate Active Recall Cards';
-      }
-    }
-
-    // --- REMNOTE CARDS & QUIZ ---
-    function addRemCard() {
-      const input = document.getElementById('rem-input');
-      const tagInput = document.getElementById('rem-tag');
-      const raw = input.value.trim();
-      if (!raw) return;
-
-      const tag = tagInput.value.trim() || 'General';
-
-      if (raw.includes('>>')) {
-        const [front, back] = raw.split('>>').map(s => s.trim());
-        cards.unshift({ id: Date.now().toString(), type: 'basic', front, back, tag, ease: 2.5 });
-      } else if (raw.includes('{{c1::')) {
-        const match = raw.match(/\{\{c1::(.*?)\}\}/);
-        const back = match ? match[1] : raw;
-        cards.unshift({ id: Date.now().toString(), type: 'cloze', front: raw, back, tag, ease: 2.5 });
-      } else {
-        cards.unshift({ id: Date.now().toString(), type: 'basic', front: raw, back: '(No back provided)', tag, ease: 2.5 });
-      }
-
-      input.value = '';
-      saveCards();
-      renderCardsList();
-    }
-
-    function deleteCard(id) {
-      cards = cards.filter(c => c.id !== id);
-      saveCards();
-      renderCardsList();
-    }
-
-    function saveCards() {
-      localStorage.setItem('studyhub_cards', JSON.stringify(cards));
-      document.getElementById('deck-count').textContent = cards.length;
-    }
-
-    function renderCardsList() {
-      const container = document.getElementById('cards-list');
-      document.getElementById('deck-count').textContent = cards.length;
-      container.innerHTML = cards.map(c => `
-        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-start justify-between gap-4">
-          <div>
-            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600">${c.tag}</span>
-            <p class="font-medium text-slate-900 text-sm mt-1">${c.front.replace(/\{\{c1::(.*?)\}\}/g, '<span class="bg-indigo-100 text-indigo-800 px-1.5 rounded font-semibold">$1</span>')}</p>
-            ${c.type === 'basic' ? `<p class="text-xs text-slate-500 mt-1">&rarr; ${c.back}</p>` : ''}
-          </div>
-          <button onclick="deleteCard('${c.id}')" class="text-xs text-slate-400 hover:text-rose-600">✕</button>
-        </div>
-      `).join('');
-    }
-
-    function loadQuizCard() {
-      if (cards.length === 0) return;
-      if (quizIndex >= cards.length) quizIndex = 0;
-
-      const card = cards[quizIndex];
-      document.getElementById('quiz-progress').textContent = `Card ${quizIndex + 1} of ${cards.length}`;
-      document.getElementById('quiz-tag').textContent = card.tag;
-      document.getElementById('quiz-typed-answer').value = '';
-      document.getElementById('quiz-answer-box').classList.add('hidden');
-      document.getElementById('reveal-btn').classList.remove('hidden');
-      document.getElementById('rating-btns').classList.add('hidden');
-
-      const displayFront = card.type === 'cloze'
-        ? card.front.replace(/\{\{c1::(.*?)\}\}/g, ' [ ______ ] ')
-        : card.front;
-
-      document.getElementById('quiz-question').textContent = displayFront;
-      document.getElementById('quiz-answer-text').textContent = card.back;
-    }
-
-    function revealAnswer() {
-      document.getElementById('quiz-answer-box').classList.remove('hidden');
-      document.getElementById('reveal-btn').classList.add('hidden');
-      document.getElementById('rating-btns').classList.remove('hidden');
-    }
-
-    function rateCard(score) {
-      const current = cards[quizIndex];
-      if (score === 1 && cards.length > 2) {
-        cards.splice(quizIndex, 1);
-        cards.splice(Math.min(quizIndex + 2, cards.length), 0, current);
-      } else {
-        quizIndex++;
-      }
-      saveCards();
-      loadQuizCard();
-    }
-
-    function shuffleQuiz() {
-      cards.sort(() => Math.random() - 0.5);
-      quizIndex = 0;
-      loadQuizCard();
-    }
-
-    // --- NAVIGATION & DRIVE LINK ---
-    function switchTab(tab) {
-      ['home', 'pdf', 'remnote', 'quiz'].forEach(t => {
-        document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab);
-        const btn = document.getElementById(`tab-${t}`);
-        btn.className = t === tab
-          ? 'tab-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-600 text-white'
-          : 'tab-btn px-4 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100';
-      });
-      if (tab === 'remnote') renderCardsList();
-      if (tab === 'quiz') loadQuizCard();
-    }
-
-    function setDriveFolder() {
-      const url = prompt('Paste the link to your Google Drive class PDFs folder:', driveUrl);
-      if (url) {
-        driveUrl = url;
-        localStorage.setItem('studyhub_drive', url);
-        document.getElementById('drive-link').href = url;
-      }
-    }
-
-    // --- INIT ---
-    renderCalendar();
-    renderCardsList();
-    syncNotion();
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>

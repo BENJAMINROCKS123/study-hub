@@ -1,67 +1,48 @@
-export async function handler(event) {
-  const NOTION_TOKEN = process.env.NOTION_TOKEN;
-  const DATABASE_ID = process.env.NOTION_DATABASE_ID;
+const { Client } = require('@notionhq/client');
 
-  if (!NOTION_TOKEN || !DATABASE_ID) {
+exports.handler = async function () {
+  const token = process.env.NOTION_TOKEN;
+  const databaseId = process.env.NOTION_DATABASE_ID || '3d90bf2cd793809c804fe4ba6e0cad0d';
+
+  if (!token) {
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Missing NOTION_TOKEN or NOTION_DATABASE_ID in Netlify Environment Variables." }),
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ tasks: [], error: 'NOTION_TOKEN not set' })
     };
   }
 
   try {
-    const response = await fetch(`https://api.notion.com/v1/databases/${DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${NOTION_TOKEN}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        page_size: 100,
-      }),
+    const notion = new Client({ auth: token });
+    const dbId = databaseId.includes('-') ? databaseId : databaseId.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
+    const response = await notion.databases.query({
+      database_id: dbId,
+      filter: { property: 'Status', status: { does_not_equal: 'Done' } },
+      sorts: [{ property: 'Due Date', direction: 'ascending' }],
+      page_size: 50
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      return { statusCode: response.status, body: JSON.stringify(data) };
-    }
-
-    const tasks = data.results.map((page) => {
+    const tasks = response.results.map(page => {
       const props = page.properties;
-      let title = "Untitled Task";
-      let date = null;
-      let subject = "General";
-      let done = false;
-
-      for (const key in props) {
-        const prop = props[key];
-        if (prop.type === "title" && prop.title.length > 0) {
-          title = prop.title.map((t) => t.plain_text).join("");
-        } else if (prop.type === "date" && prop.date) {
-          date = prop.date.start.split("T")[0];
-        } else if (prop.type === "select" && prop.select) {
-          subject = prop.select.name;
-        } else if (prop.type === "checkbox") {
-          done = prop.checkbox;
-        } else if (prop.type === "status" && prop.status) {
-          done = prop.status.name.toLowerCase() === "done" || prop.status.name.toLowerCase() === "completed";
-        }
-      }
-
-      return { id: page.id, title, date, subject, done, url: page.url };
+      const titleProp = props['Assignment/ Task name'] || props.Name || props.Title;
+      const title = titleProp?.title?.map(t => t.plain_text).join('') || 'Untitled';
+      const due = props['Due Date']?.date?.start || null;
+      const status = props.Status?.status?.name || 'Not started';
+      const taskType = props['Task Type']?.select?.name || '';
+      const priority = props.Priority?.select?.name || null;
+      return { id: page.id, title, due, status, taskType, priority, url: page.url };
     });
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tasks }),
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ tasks })
     };
   } catch (err) {
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ tasks: [], error: err.message })
     };
   }
-}
+};
