@@ -1,23 +1,21 @@
-# StudyHub
+# StudyHub v2
 
-Dark-mode AI study hub with Notion Assignments & Tasks sync.
+Dark/light study OS with Notion Assignments sync, checkboxes that mark **Done** in Notion, and an expert AI for revision sheets / plans / mocks / flashcards.
+
+## Repo
+https://github.com/BENJAMINROCKS123/study-hub
 
 ## Features
-- Left index sidebar (Home, Calendar, Flashcards, Revision, Plan My Day, Settings)
-- Black + purple (+ indigo) theme
-- **Plan My Day**: uses Notion due dates. Never schedules tests unless due today. Allows Üben / revise tasks any day.
-- AI chat: revision sheets, plans, mock tests, practice — file/link attachments + PDF download
-- Calendar day boxes show homework / revision / fixed tests
-- Flashcards: manual, AI, Quizlet link, paste import + active recall study
+- Login / Sign up / Forgot password + **Continue with Google** (demo Google session for personal use)
+- Profile chip (Benjamin Yu · benjaminyu747@gmail.com) + theme toggle + **Log out**
+- Task list & calendar **checkboxes** → local save + Notion `Status = Done` via function
+- Plan My Day rules: no tests unless due today; Üben/revise allowed
+- AI: Netlify function with Grok/OpenAI, plus strong offline expert generator
+- Flashcards: manual, AI generate, Quizlet (export paste), paste import
 
-## Deploy (Netlify + GitHub)
-1. This repo is on GitHub: https://github.com/BENJAMINROCKS123/study-hub
-2. Import site on Netlify (from GitHub)
-3. Environment variables:
-   - `NOTION_TOKEN` — Notion integration secret
-   - `NOTION_DATABASE_ID` — `3d90bf2c-d793-809c-804f-e4ba6e0cad0d`
-   - Optional: `GROK_API_KEY` or `OPENAI_API_KEY` for real AI
-4. Share the Notion database with your integration
+## Netlify env
+- `NOTION_TOKEN`
+- `NOTION_DATABASE_ID` = `3d90bf2c-d793-809c-804f-e4ba6e0cad0d`
+- `GROK_API_KEY` or `OPENAI_API_KEY` (optional but recommended for live AI)
 
-## Local
-Open `index.html` or any static server. Sync falls back to demo tasks (seeded from your real Notion list).
+Share the Notion database with your integration.
