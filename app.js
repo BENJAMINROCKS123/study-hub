@@ -357,7 +357,7 @@ function runPlanMyDay() {
 
   let html = `<div class="rounded-xl bg-surface/80 border border-purple-800/40 p-4"><h4 class="text-xs font-bold uppercase text-purple-400 mb-2">Today (${today})</h4>`;
   if (!candidates.length) html += `<p class="text-sm text-gray-400">No urgent HW / allowed revision for today.</p>`;
-  else html += candidates.slice(0, 8).map((c, i) => {
+  else html += candidates.slice(0, 8).map((c) => {
     const k = c.task.type || classify(c.task.title);
     return `<label class="flex items-start gap-3 p-2.5 rounded-lg bg-black/30 mb-2">
       <input type="checkbox" ${c.task.done?'checked':''} onchange="toggleTaskDone('${c.task.id}', this.checked)" class="mt-1 accent-purple-500" />
@@ -430,17 +430,14 @@ async function sendChat() {
   renderAttach();
   appendChat('ai', '<span class="text-purple-400"><i class="fa-solid fa-spinner fa-spin"></i> Thinking…</span>', true);
   document.getElementById('send-btn').disabled = true;
-
   try {
     const result = await callStudyAI(aiMode, text, sources);
     let bodyHtml = formatAIReply(result.reply, aiMode);
     if (result.offline) {
-      bodyHtml += `<p class="text-[10px] text-amber-400/80 mt-2">Offline expert engine${result.apiError ? ' (' + escapeHtml((result.apiError) + ')' : ''}. Add GROK_API_KEY on Netlify for live model.</p>`;
+      bodyHtml += `<p class="text-[10px] text-amber-400/80 mt-2">Offline expert engine${result.apiError ? ' (' + escapeHtml(result.apiError) + ')' : ''}. Add GROK_API_KEY on Netlify for live model.</p>`;
     }
     const title = `${aiMode} — ${(text || 'study').slice(0, 40)}`;
-    bodyHtml += `<div class="flex gap-2 mt-3">
-      <button onclick='downloadMaterial(${JSON.stringify(title)}, ${JSON.stringify(result.reply)})' class="text-xs bg-purple-700 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg"><i class="fa-solid fa-file-pdf"></i> Download / Print</button>
-    </div>`;
+    bodyHtml += `<div class="flex gap-2 mt-3"><button onclick='downloadMaterial(${JSON.stringify(title)}, ${JSON.stringify(result.reply)})' class="text-xs bg-purple-700 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg"><i class="fa-solid fa-file-pdf"></i> Download / Print</button></div>`;
     replaceLastAI(bodyHtml);
     if (aiMode === 'flashcards') importCardsFromAI(result.reply);
     history.unshift({ id: Date.now(), type: aiMode, title, content: result.reply, created: new Date().toISOString() });
@@ -593,9 +590,7 @@ async function generateAICards() {
   try {
     const result = await callStudyAI('flashcards', prompt, []);
     importCardsFromAI(result.reply);
-    status.textContent = result.offline
-      ? 'Generated offline expert cards (added to deck).'
-      : 'AI cards generated and added to deck.';
+    status.textContent = result.offline ? 'Generated offline expert cards (added to deck).' : 'AI cards generated and added to deck.';
     updateDeckUI();
   } catch (e) {
     status.textContent = 'Failed: ' + e.message;
