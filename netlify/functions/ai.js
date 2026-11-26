@@ -30,8 +30,8 @@ Your job is to produce HIGH-QUALITY, immediately usable study materials:
 
 Rules:
 - Match the user's language when possible
-- Be specific to topics named
-- Dense, exam-useful content
+- Be specific to the topics they name
+- No fluff. Dense, exam-useful content.
 - Use markdown.`;
 
 exports.handler = async function (event) {
@@ -138,7 +138,7 @@ function buildUserMessage(mode, prompt, sources) {
     plan: 'Create a multi-day REVISION PLAN in markdown.',
     mock: 'Create a full MOCK TEST with questions AND a separate answer key.',
     practice: 'Create a PRACTICE SET with mixed questions and brief answers at the end.',
-    flashcards: 'Create FLASHCARDS. Respond with ONLY a valid JSON array of objects with "front" and "back" keys.'
+    flashcards: 'Create FLASHCARDS. Respond with ONLY a valid JSON array of objects with "front" and "back" keys. No markdown fences if possible.'
   }[mode] || 'Help the student study.';
 
   return `${modeHint}\n\nStudent request:\n${prompt || '(no extra text — invent a solid generic set for common secondary topics)'}\n${src}`;
@@ -157,24 +157,22 @@ function offlineExpert(mode, prompt, sources) {
       { front: `One formula / rule / verb pattern for ${topic}`, back: 'Write it, cover it, rewrite from memory twice.' },
       { front: `Connect ${topic} to a previous chapter`, back: 'Name the link (cause/effect, contrast, prerequisite).' },
       { front: `Create one exam-style short question on ${topic}`, back: 'Then answer it without looking.' },
-      { front: `What would the teacher mark wrong most often here?`, back: 'Incomplete answers, wrong case/tense (languages), missing steps (math).' },
-      { front: `Cloze: The main point of ${topic} is ____.`, back: 'Fill from memory; verify with notes.' },
-      { front: `When is ${topic} applied in an exam?`, back: 'Give a concrete scenario and the method you would use.' }
+      { front: `What would the teacher mark wrong most often here?`, back: 'Incomplete answers, wrong case/tense (languages), missing steps (math).' }
     ];
     return JSON.stringify(cards, null, 2);
   }
 
   if (mode === 'plan') {
-    return `# Revision Plan — ${topic}\n${srcLine}\n## Goal\nArrive at the test date confident via **active recall**, not passive rereading.\n\n## Schedule\n### Day 1 — Map\n- Skim teacher PDF / notes for ${topic}\n- Write a 1-page skeleton: headings only\n- Make 10 flashcards\n\n### Day 2 — Build\n- Fill skeleton from memory first, then fix gaps\n- Practice vocab / formulas 2×\n- 15-minute timed mini-quiz\n\n### Day 3 — Stress test\n- Mixed practice (hard ones first)\n- Mark weak spots\n- Rebuild weak flashcards\n\n### Day 4 — Polish\n- Light review only\n- Sleep priority\n- No new topics\n\n## Rules\n- Fixed teacher **tests** stay on their due date — only schedule *revision* for them.\n- Prefer short sessions (25–40 min).\n`;
+    return `# Revision Plan — ${topic}\n${srcLine}\n## Goal\nArrive at the test date confident via **active recall**, not passive rereading.\n\n## Schedule\n### Day 1 — Map\n- Skim teacher PDF / notes for ${topic}\n- Write a 1-page skeleton: headings only\n- Make 10 flashcards\n\n### Day 2 — Build\n- Fill skeleton from memory first, then fix gaps\n- Practice vocab / formulas 2×\n- 15-minute timed mini-quiz\n\n### Day 3 — Stress test\n- Mixed practice (hard ones first)\n- Mark weak spots\n- Rebuild only weak flashcards\n\n### Day 4 — Polish\n- Light review only\n- Sleep priority\n\n## Rules\n- Fixed teacher **tests** stay on their due date — you only schedule *revision* for them.\n`;
   }
 
   if (mode === 'mock') {
-    return `# Mock Test — ${topic}\n**Time:** 45–60 minutes\n**No notes.** Show working.\n${srcLine}\n## Part A — Short answers (8 × 2)\n1. Define the central concept of ${topic} in one sentence.\n2. Give two examples.\n3. State one common misconception and correct it.\n4. List key vocabulary / symbols.\n5. What prior knowledge does this depend on?\n6. Outline steps for a typical problem.\n7. Compare/contrast two related ideas.\n8. Why does this topic matter?\n\n## Part B — Structured (2 × 8)\n9. Explain ${topic} in detail: definition → process → application.\n10. Diagnose a typical student error and show the correct approach.\n\n## Part C — Application (1 × 10)\n11. Apply ${topic} to a new scenario. Show reasoning.\n\n## Answer key\nPrefer precise terms, clear structure, correct method.\n`;
+    return `# Mock Test — ${topic}\n**Time suggestion:** 45–60 minutes\n${srcLine}\n## Part A — Short answers (8 × 2 marks)\n1. Define the central concept of ${topic} in one sentence.\n2. Give two examples that illustrate it.\n3. State one common misconception and correct it.\n4. List key vocabulary / symbols used in this unit.\n5. What prior knowledge does this topic depend on?\n6. Outline the steps to solve a typical problem in this area.\n7. Compare/contrast two related ideas within ${topic}.\n8. Why does this topic matter for the wider subject?\n\n## Part B — Structured (2 × 8 marks)\n9. Explain ${topic} in detail with examples.\n10. Diagnose a typical student error and show the correct approach.\n\n## Part C — Application (1 × 10 marks)\n11. Apply ${topic} to a new scenario. Show reasoning.\n\n---\n\n## Answer key\nPrefer precise, textbook-aligned definitions; award marks for key terms and clear structure.\n`;
   }
 
   if (mode === 'practice') {
-    return `# Practice Set — ${topic}\n${srcLine}\n1. 5-min brain dump on ${topic}\n2. Circle gaps; notes only for those\n3. 5 cloze sentences\n4. 3 timed exercises\n5. Teach one sub-idea aloud\n6. Rephrase key definitions\n7. Rewrite one old homework mistake\n8. Drill weakest subtopic 10 min\n9. Interleave two subtopics\n10. Exit ticket: 3 bullets + 1 question\n\n**Self-mark:** restudy anything under 80%.\n`;
+    return `# Practice Set — ${topic}\n${srcLine}\n1. Write everything you remember about **${topic}** in 5 minutes.\n2. Circle gaps. Open notes only for circled items.\n3. Create 5 cloze sentences from your notes.\n4. Solve 3 textbook-style exercises under time pressure.\n5. Teach one sub-idea out loud without notes.\n6. Rephrase key definitions in your own words.\n7. Find one past mistake and rewrite the correct solution.\n8. Rank subtopics weakest → strongest; drill the weakest 10 minutes.\n9. Interleave two subtopics in one session.\n10. Exit ticket: three bullet summary + one remaining question.\n`;
   }
 
-  return `# Revision Sheet — ${topic}\n${srcLine}\n## 1. Big picture\n- What is **${topic}** about in one sentence?\n- Where does it sit in the course?\n\n## 2. Must-know concepts\n| Concept | My definition (from memory) | Check |\n|--------|-----------------------------|-------|\n| Core idea | | ☐ |\n| Key term 1 | | ☐ |\n| Key term 2 | | ☐ |\n| Process / method | | ☐ |\n\n## 3. Details & rules\n- Rule / formula / pattern 1:\n- Rule / formula / pattern 2:\n- Exceptions:\n\n## 4. Worked example\n1. Write a typical question for ${topic}.\n2. Solve without notes.\n3. Compare with notes.\n\n## 5. Common mistakes\n- Mistake A → fix:\n- Mistake B → fix:\n\n## 6. Active recall prompts\n1. Explain ${topic} without looking.\n2. What would you still get wrong under stress?\n3. Link to an earlier unit.\n\n## 7. Self-check\n- [ ] Definitions blank-paper\n- [ ] One timed exercise correct\n- [ ] Know the traps\n\n*Close this sheet and rewrite the tables from memory.*\n`;
+  return `# Revision Sheet — ${topic}\n${srcLine}\n## 1. Big picture\n- What is **${topic}** about in one sentence?\n- Where does it sit in the course?\n\n## 2. Must-know concepts\n| Concept | My definition (from memory) | Check |\n|--------|-----------------------------|-------|\n| Core idea | | ☐ |\n| Key term 1 | | ☐ |\n| Key term 2 | | ☐ |\n| Process / method | | ☐ |\n\n## 3. Details & rules\n- Rule / formula / grammar pattern 1:\n- Rule / formula / grammar pattern 2:\n- Exceptions:\n\n## 4. Worked example\n1. Write a typical question for ${topic}.\n2. Solve without notes.\n3. Compare with notes / mark scheme.\n\n## 5. Common mistakes\n- Mistake A → correct approach:\n- Mistake B → correct approach:\n\n## 6. Active recall prompts\n1. Explain ${topic} without looking.\n2. What would you still get wrong under exam stress?\n3. Link this topic to one earlier unit.\n\n## 7. Quick self-check\n- [ ] I can define every key term blank-paper style\n- [ ] I can do one timed exercise correctly\n- [ ] I know the typical trap questions\n`;
 }
