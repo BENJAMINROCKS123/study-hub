@@ -1,4 +1,4 @@
-/* StudyHub v2 — auth, Notion checkboxes, real AI pipeline */
+/* StudyHub v2 — Vercel + owner login + AI */
 const KEYS = {
   session: 'studyhub_session_v2',
   tasks: 'studyhub_tasks_v2',
@@ -10,8 +10,17 @@ const KEYS = {
 const DEFAULT_USER = {
   name: 'Benjamin Yu',
   email: 'benjaminyu747@gmail.com',
-  avatar: 'https://avatars.githubusercontent.com/u/213555010?v=4'
+  avatar: 'https://avatars.githubusercontent.com/u/213555010?v=4',
+  password: 'StudyHub2026!'
 };
+
+(function seedOwner() {
+  try {
+    const users = JSON.parse(localStorage.getItem('studyhub_users') || '{}');
+    users[DEFAULT_USER.email] = { name: DEFAULT_USER.name, pass: DEFAULT_USER.password };
+    localStorage.setItem('studyhub_users', JSON.stringify(users));
+  } catch (_) {}
+})();
 
 const SEED = [
   { id: 's1', title: 'Vokabeln 4.3 ins Heft schreiben', type: 'hw', status: 'Not started', due: '2026-11-27', done: false },
@@ -54,7 +63,7 @@ function classify(title) {
 }
 
 function escapeHtml(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s ?? '').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
 }
 
 function showAuth(which) {
@@ -65,7 +74,7 @@ function showAuth(which) {
 }
 
 function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass = document.getElementById('login-pass').value;
   const err = document.getElementById('auth-error');
   if (!email.includes('@')) {
@@ -74,6 +83,17 @@ function doLogin() {
     return;
   }
   const users = JSON.parse(localStorage.getItem('studyhub_users') || '{}');
+  if (email === DEFAULT_USER.email.toLowerCase()) {
+    if (pass && pass !== DEFAULT_USER.password && users[email]?.pass && pass !== users[email].pass) {
+      err.textContent = 'Wrong password.';
+      err.classList.remove('hidden');
+      return;
+    }
+    session = { email: DEFAULT_USER.email, name: DEFAULT_USER.name, avatar: DEFAULT_USER.avatar, loginAt: Date.now() };
+    saveSession();
+    enterApp();
+    return;
+  }
   if (users[email] && users[email].pass && pass.length > 0 && pass !== users[email].pass) {
     err.textContent = 'Wrong password.';
     err.classList.remove('hidden');
@@ -81,7 +101,7 @@ function doLogin() {
   }
   session = {
     email,
-    name: users[email]?.name || (email === DEFAULT_USER.email ? DEFAULT_USER.name : email.split('@')[0]),
+    name: users[email]?.name || email.split('@')[0],
     avatar: DEFAULT_USER.avatar,
     loginAt: Date.now()
   };
@@ -207,7 +227,7 @@ async function toggleTaskDone(id, done) {
   renderCalendar();
   if (String(id).startsWith('s')) return;
   try {
-    const res = await fetch('/.netlify/functions/notion', {
+    const res = await fetch('/api/notion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: done ? 'mark_done' : 'mark_undone', pageId: id })
@@ -232,7 +252,7 @@ function setSyncUI(ok, label) {
 async function syncNotion() {
   setSyncUI(false, 'Syncing…');
   try {
-    const res = await fetch('/.netlify/functions/notion');
+    const res = await fetch('/api/notion');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.error && (!data.tasks || !data.tasks.length)) {
@@ -256,7 +276,7 @@ async function syncNotion() {
       return;
     }
   } catch (e) {
-    setSyncUI(false, 'Local mode (deploy + NOTION_TOKEN for live sync)');
+    setSyncUI(false, 'Local mode (set NOTION_TOKEN on Vercel for live sync)');
   }
 }
 
@@ -339,10 +359,12 @@ function runPlanMyDay() {
   const candidates = [];
   open.forEach(t => {
     const k = t.type || classify(t.title);
+    // Tests ONLY on the fixed due day — never earlier
     if (k === 'test') {
-      if (t.due === today) candidates.push({ task: t, reason: 'Test is today (fixed)', priority: -1 });
+      if (t.due === today) candidates.push({ task: t, reason: 'Test is today (fixed date)', priority: -1 });
       return;
     }
+    // Üben / revise allowed any day
     if (k === 'revise') {
       candidates.push({ task: t, reason: daysUntil(t.due) <= 2 ? 'Revision due soon' : 'Üben/revise — do ahead', priority: daysUntil(t.due) });
       return;
@@ -367,7 +389,7 @@ function runPlanMyDay() {
   }).join('');
   html += `</div>`;
   if (upcoming.length) {
-    html += `<div class="rounded-xl bg-rose-950/30 border border-rose-900/40 p-4 mt-3"><h4 class="text-xs font-bold uppercase text-rose-400 mb-2">Locked tests</h4>` +
+    html += `<div class="rounded-xl bg-rose-950/30 border border-rose-900/40 p-4 mt-3"><h4 class="text-xs font-bold uppercase text-rose-400 mb-2">Locked tests (only on their set day)</h4>` +
       upcoming.map(t => `<div class="flex justify-between text-sm text-gray-300"><span>${escapeHtml(t.title)}</span><span class="text-rose-400 text-xs">${t.due}</span></div>`).join('') + `</div>`;
   }
   const o1 = document.getElementById('plan-output');
@@ -393,7 +415,7 @@ function bootstrapChat() {
   box.innerHTML = `<div class="chat-ai rounded-2xl rounded-tl-sm p-4 text-sm text-gray-300 max-w-[90%]">
     <p class="mb-2">I'm <strong class="text-purple-300">StudyHub AI</strong> — revision sheets, plans, mock tests, practice sets, and active-recall flashcards.</p>
     <p class="mb-2">Pick a mode, attach files/links, then ask (e.g. "Revision sheet for Vokabeln 4.3").</p>
-    <p class="text-xs text-gray-500">With Netlify GROK_API_KEY / OPENAI_API_KEY you get live model replies. Offline expert generator always works.</p>
+    <p class="text-xs text-gray-500">Offline expert always works. Set OPENAI_API_KEY on Vercel for live model.</p>
   </div>`;
 }
 
@@ -434,7 +456,7 @@ async function sendChat() {
     const result = await callStudyAI(aiMode, text, sources);
     let bodyHtml = formatAIReply(result.reply, aiMode);
     if (result.offline) {
-      bodyHtml += `<p class="text-[10px] text-amber-400/80 mt-2">Offline expert engine${result.apiError ? ' (' + escapeHtml(result.apiError) + ')' : ''}. Add GROK_API_KEY on Netlify for live model.</p>`;
+      bodyHtml += `<p class="text-[10px] text-amber-400/80 mt-2">Offline expert engine${result.apiError ? ' (' + escapeHtml(result.apiError) + ')' : ''}. Add OPENAI_API_KEY on Vercel for live model.</p>`;
     }
     const title = `${aiMode} — ${(text || 'study').slice(0, 40)}`;
     bodyHtml += `<div class="flex gap-2 mt-3"><button onclick='downloadMaterial(${JSON.stringify(title)}, ${JSON.stringify(result.reply)})' class="text-xs bg-purple-700 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg"><i class="fa-solid fa-file-pdf"></i> Download / Print</button></div>`;
@@ -450,7 +472,7 @@ async function sendChat() {
 
 async function callStudyAI(mode, prompt, sources) {
   try {
-    const res = await fetch('/.netlify/functions/ai', {
+    const res = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode, prompt, sources })
@@ -603,12 +625,17 @@ function importQuizlet() {
   const paste = document.getElementById('fc-quizlet-paste').value.trim();
   let n = 0;
   if (paste) n = importPairsText(paste, 'Quizlet');
+  // Browsers cannot scrape quizlet.com (CORS). Paste export required for real cards.
   if (url.includes('quizlet.com')) {
-    cards.push({ id: String(Date.now()), front: 'Quizlet set (open to study)', back: url, tag: 'Quizlet', ease: 2.5, source: url });
+    if (!paste) {
+      alert('Quizlet blocks direct link import in the browser.\n\nHow to import:\n1) Open your Quizlet set\n2) Export / copy terms\n3) Paste term + definition lines into the paste box\n4) Click Import again\n\n(URL was saved as a reference card.)');
+    }
+    cards.push({ id: String(Date.now()), front: 'Quizlet set (reference link)', back: url, tag: 'Quizlet', ease: 2.5, source: url });
     n++;
     saveCards();
   }
-  alert(n ? `Imported/saved ${n} item(s). For full term lists use Quizlet Export → paste into the box.` : 'Paste exported terms or a Quizlet URL.');
+  if (n && paste) alert(`Imported ${n} card(s) from paste.`);
+  else if (!url && !paste) alert('Paste exported terms (term [tab] definition) or a Quizlet URL + paste.');
 }
 
 function importPaste() {
